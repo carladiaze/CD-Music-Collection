@@ -6,6 +6,24 @@ Busca álbumes en iTunes, escanea códigos de barras, organiza por estantes, sin
 
 ---
 
+## 🚀 Empezar en 30 segundos
+
+**Paso 1 — Descarga el archivo**
+
+Haz clic en el archivo `index.html` de este repositorio → botón **Download raw file** (o el ícono de descarga ↓ arriba a la derecha del archivo).
+
+Guárdalo en cualquier carpeta de tu computadora.
+
+**Paso 2 — Ábrelo en tu navegador**
+
+Haz doble clic sobre el archivo `index.html`. Se abre directamente en Chrome, Safari, Firefox o Edge — sin instalar nada, sin conexión a internet necesaria para este paso.
+
+Ya tienes Discothèque funcionando. Los 6 álbumes de demo son ejemplos — elimínalos y empieza con tu propia colección.
+
+> **¿Quieres acceder desde tu celular o sincronizar entre dispositivos?** Sigue leyendo — las secciones 05 y 06 explican cómo publicarlo en Netlify y conectar Supabase, ambos gratis.
+
+---
+
 ## ¿Qué hay en este manual?
 
 - [01 — ¿Qué es y por qué existe?](#01--qué-es-y-por-qué-existe)
@@ -412,6 +430,8 @@ Netlify ha tenido plan gratuito desde 2015 y no hay señales de que cambie para 
 
 </div>
 
+
+</div>
 
 
 # 💿 CD Collection Manager
