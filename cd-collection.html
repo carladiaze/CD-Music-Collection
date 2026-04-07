@@ -3,276 +3,704 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CD Collection</title>
+<title>Discothèque — Analog Library</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
 :root{
-  --bg:#0e0d0c;--surface:#1a1916;--surface2:#232219;
-  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
-  --gold:#c9a84c;--gold-dim:rgba(201,168,76,0.15);--gold-mid:rgba(201,168,76,0.35);
-  --cream:#f0ead8;--muted:rgba(240,234,216,0.45);--faint:rgba(240,234,216,0.18);
-  --radius:10px;--radius-lg:16px;
-  --font-display:'Syne',sans-serif;
-  --font-body:'DM Sans',sans-serif;--font-mono:'DM Mono',monospace;
+  --bg:#f5f5f7;
+  --bg2:#ebebed;
+  --surface:rgba(255,255,255,0.82);
+  --surface-solid:#ffffff;
+  --surface2:rgba(245,245,247,0.9);
+  --border:rgba(0,0,0,0.06);
+  --border2:rgba(0,0,0,0.1);
+  --ink:#1d1d1f;
+  --ink2:#3d3d3f;
+  --muted:#6e6e73;
+  --faint:#aeaeb2;
+  --accent:#7c3aed;
+  --accent-light:rgba(124,58,237,0.1);
+  --accent-border:rgba(124,58,237,0.2);
+  --red:#ff3b30;
+  --green:#30d158;
+  --yellow:#7c3aed;
+  --radius:12px;
+  --radius-lg:18px;
+  --radius-xl:26px;
+  --font:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  --shadow:0 2px 8px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-lg:0 20px 60px rgba(0,0,0,0.1),0 4px 12px rgba(0,0,0,0.06);
+  --shadow-card:0 2px 12px rgba(0,0,0,0.06);
 }
-body{background:var(--bg);color:var(--cream);font-family:var(--font-body);font-size:15px;line-height:1.6;min-height:100vh}
-header{padding:2.5rem 2rem 1.5rem;border-bottom:0.5px solid var(--border);display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap}
-.header-left h1{font-family:var(--font-display);font-size:2rem;font-weight:400;letter-spacing:-1px;line-height:1.1}
-.header-left h1 em{color:var(--gold);font-style:normal;font-weight:800}
-.header-left p{font-size:13px;color:var(--muted);margin-top:4px;font-family:var(--font-mono);font-weight:300;letter-spacing:0.3px}
-.stats-row{display:flex;gap:1.5rem}
-.stat{text-align:right}
-.stat-num{font-family:var(--font-display);font-size:1.5rem;font-weight:700;color:var(--gold);line-height:1;letter-spacing:-0.5px}
-.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:var(--font-mono)}
-.app-layout{display:grid;grid-template-columns:340px 1fr;min-height:calc(100vh - 120px)}
-.sidebar{border-right:0.5px solid var(--border);padding:1.5rem;display:flex;flex-direction:column;gap:1.25rem}
-.section-label{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:.5rem}
-.search-box{position:relative}
-.search-box input{width:100%;background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--radius);padding:.65rem 1rem .65rem 2.5rem;color:var(--cream);font-family:var(--font-body);font-size:14px;outline:none;transition:border-color .2s}
-.search-box input:focus{border-color:var(--gold)}
-.search-box input::placeholder{color:var(--faint)}
-.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:.35;pointer-events:none;font-size:15px}
-.search-btn{width:100%;margin-top:.5rem;background:var(--gold);color:#1a1510;border:none;border-radius:var(--radius);padding:.6rem 1rem;font-family:var(--font-body);font-size:13px;font-weight:500;cursor:pointer;transition:opacity .2s}
-.search-btn:hover{opacity:.88}
-.search-btn:disabled{opacity:.4;cursor:default}
-.results-list{display:flex;flex-direction:column;gap:.4rem;max-height:300px;overflow-y:auto}
-.results-list::-webkit-scrollbar{width:3px}
-.results-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-.result-item{display:flex;gap:10px;align-items:center;padding:.55rem .75rem;border-radius:8px;cursor:pointer;border:0.5px solid transparent;transition:background .15s,border-color .15s}
-.result-item:hover{background:var(--surface);border-color:var(--border2)}
-.result-item.selected{background:var(--gold-dim);border-color:var(--gold-mid)}
-.result-thumb{width:38px;height:38px;border-radius:4px;object-fit:cover;background:var(--surface2);flex-shrink:0;border:0.5px solid var(--border)}
-.result-thumb-ph{width:38px;height:38px;border-radius:4px;background:var(--surface2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;border:0.5px solid var(--border)}
+
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font);
+  font-size:15px;
+  line-height:1.5;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* ── HEADER ── */
+.header{
+  background:rgba(22,17,34,0.92);
+  backdrop-filter:blur(28px) saturate(1.4);
+  -webkit-backdrop-filter:blur(28px) saturate(1.4);
+  border-bottom:1px solid rgba(255,255,255,0.07);
+  padding:0 2.5rem;
+  height:72px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  position:sticky;
+  top:0;
+  z-index:50;
+}
+.header::after{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(160,120,255,0.35) 40%,rgba(200,170,255,0.5) 50%,rgba(160,120,255,0.35) 60%,transparent);
+  pointer-events:none;
+}
+.header-brand{display:flex;align-items:center;gap:.6rem}
+.logo-main{
+  font-size:1.35rem;
+  font-weight:700;
+  letter-spacing:-0.5px;
+  color:#fff;
+}
+.logo-sep{
+  width:1px;height:18px;
+  background:rgba(255,255,255,0.15);
+  margin:0 .1rem;
+}
+.logo-sub{
+  font-size:.7rem;
+  font-weight:500;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:rgba(200,180,255,0.45);
+}
+.header-right{display:flex;align-items:center;gap:.75rem}
+.hdr-stat{text-align:right}
+.hdr-stat-num{font-size:1.1rem;font-weight:600;color:#fff;letter-spacing:-0.3px;line-height:1}
+.hdr-stat-label{font-size:9px;font-weight:500;color:rgba(200,180,255,0.4);text-transform:uppercase;letter-spacing:1.2px;margin-top:1px}
+.hdr-divider{width:1px;height:24px;background:rgba(255,255,255,0.1)}
+.sync-pill{
+  display:inline-flex;align-items:center;gap:6px;padding:6px 14px;
+  border-radius:20px;border:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.06);
+  font-size:11px;font-weight:500;color:rgba(200,185,255,0.55);
+  cursor:pointer;transition:all .15s;letter-spacing:.2px;
+}
+.sync-pill:hover{border-color:rgba(160,120,255,0.3);background:rgba(255,255,255,0.1);color:rgba(220,200,255,0.8)}
+.sync-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sync-dot.offline{background:rgba(255,255,255,0.25)}
+.sync-dot.syncing{background:var(--accent);animation:pulse .9s ease infinite}
+.sync-dot.ok{background:var(--green)}
+.sync-dot.error{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── LAYOUT ── */
+.app-body{display:grid;grid-template-columns:288px 1fr;min-height:calc(100vh - 72px)}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  background:var(--surface-solid);
+  border-right:1px solid var(--border);
+  padding:1.5rem;
+  display:flex;
+  flex-direction:column;
+  gap:1.25rem;
+  position:sticky;
+  top:72px;
+  height:calc(100vh - 72px);
+  overflow-y:auto;
+}
+.sidebar::-webkit-scrollbar{width:0}
+.sidebar-section-label{
+  font-size:10px;font-weight:600;text-transform:uppercase;
+  letter-spacing:1.2px;color:var(--faint);margin-bottom:.4rem;
+}
+
+/* Search input */
+.search-wrap{position:relative}
+.search-wrap input{
+  width:100%;
+  background:var(--bg);
+  border:1px solid var(--border2);
+  border-radius:12px;
+  padding:.6rem 1rem .6rem 2.5rem;
+  color:var(--ink);
+  font-family:var(--font);
+  font-size:14px;
+  font-weight:400;
+  outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.search-wrap input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+.search-wrap input::placeholder{color:var(--faint)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:13px;pointer-events:none}
+
+.btn-primary{
+  width:100%;
+  background:var(--ink);
+  color:#fff;
+  border:none;
+  border-radius:12px;
+  padding:.65rem 1rem;
+  font-family:var(--font);
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all .2s;
+  letter-spacing:-.1px;
+}
+.btn-primary:hover{background:var(--ink2);transform:translateY(-1px)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary:disabled{opacity:.3;cursor:default;transform:none}
+
+.btn-secondary{
+  width:100%;background:transparent;color:var(--ink2);
+  border:1px solid var(--border2);border-radius:12px;
+  padding:.6rem 1rem;font-family:var(--font);font-size:13px;font-weight:500;
+  cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:.4rem;
+}
+.btn-secondary:hover{background:var(--bg2);border-color:var(--border2)}
+
+/* Results */
+.results-list{display:flex;flex-direction:column;max-height:280px;overflow-y:auto;gap:2px}
+.results-list::-webkit-scrollbar{width:0}
+.result-item{
+  display:flex;gap:10px;align-items:center;
+  padding:.55rem .65rem;border-radius:10px;cursor:pointer;
+  border:1px solid transparent;transition:all .12s;
+}
+.result-item:hover{background:var(--bg);border-color:var(--border)}
+.result-item.selected{background:var(--accent-light);border-color:var(--accent-border)}
+.result-thumb{width:38px;height:38px;border-radius:8px;object-fit:cover;background:var(--bg2);flex-shrink:0;border:1px solid var(--border)}
+.result-thumb-ph{width:38px;height:38px;border-radius:8px;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;border:1px solid var(--border)}
 .result-info{flex:1;min-width:0}
-.result-title{font-size:13px;font-weight:500;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.result-artist{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--font-mono)}
-.result-year{font-size:11px;color:var(--gold);font-family:var(--font-mono);flex-shrink:0}
-.add-btn{width:100%;background:transparent;border:0.5px solid var(--gold-mid);border-radius:var(--radius);padding:.55rem 1rem;color:var(--gold);font-family:var(--font-body);font-size:13px;cursor:pointer;transition:background .2s}
-.add-btn:hover{background:var(--gold-dim)}
-.add-btn:disabled{opacity:.3;cursor:default}
-.manual-form{display:flex;flex-direction:column;gap:.5rem}
-.manual-form input,.manual-form textarea{background:var(--surface);border:0.5px solid var(--border2);border-radius:8px;padding:.5rem .75rem;color:var(--cream);font-family:var(--font-body);font-size:13px;outline:none;transition:border-color .2s;resize:none}
-.manual-form input:focus,.manual-form textarea:focus{border-color:var(--gold)}
-.manual-form input::placeholder,.manual-form textarea::placeholder{color:var(--faint)}
-.main{padding:1.5rem}
-.toolbar{display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap}
-.toolbar-search{flex:1;min-width:140px;position:relative}
-.toolbar-search input{width:100%;background:var(--surface);border:0.5px solid var(--border2);border-radius:8px;padding:.5rem .75rem .5rem 2rem;color:var(--cream);font-family:var(--font-body);font-size:13px;outline:none}
-.toolbar-search input:focus{border-color:var(--gold)}
-.toolbar-search input::placeholder{color:var(--faint)}
-.toolbar-search .search-icon{font-size:13px;left:8px}
-.shelf-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem}
-.pill{padding:3px 12px;border-radius:20px;border:0.5px solid var(--border2);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--font-mono);transition:all .15s;white-space:nowrap}
-.pill:hover{border-color:var(--gold-mid);color:var(--cream)}
-.pill.active{background:var(--gold-dim);border-color:var(--gold-mid);color:var(--gold)}
-.view-toggle{display:flex;gap:2px;background:var(--surface);border:0.5px solid var(--border2);border-radius:8px;padding:3px}
-.view-btn{padding:4px 10px;border-radius:6px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:14px;transition:background .15s,color .15s}
-.view-btn.active{background:var(--gold);color:#1a1510}
-.sort-select{background:var(--surface);border:0.5px solid var(--border2);border-radius:8px;padding:.45rem .75rem;color:var(--muted);font-family:var(--font-body);font-size:12px;outline:none;cursor:pointer}
-.sort-select option{background:#1a1916}
-.collection-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:1rem}
-.cd-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;transition:border-color .2s,transform .15s;position:relative}
-.cd-card:hover{border-color:var(--gold-mid);transform:translateY(-2px)}
-.cd-cover{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--surface2)}
-.cd-cover-ph{width:100%;aspect-ratio:1;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:2.5rem;position:relative}
-.cd-cover-ph.loading::after{content:'';position:absolute;width:20px;height:20px;border:2px solid rgba(201,168,76,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite}
-.cd-info{padding:.65rem .75rem}
-.cd-title{font-size:13px;font-weight:500;color:var(--cream);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.cd-artist{font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cd-year{font-size:10px;color:var(--gold);font-family:var(--font-mono);margin-top:4px}
-.cd-delete{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.6);border:0.5px solid var(--border2);color:var(--muted);font-size:12px;cursor:pointer;display:none;align-items:center;justify-content:center}
-.cd-card:hover .cd-delete{display:flex}
-.collection-list{display:flex;flex-direction:column;gap:.35rem}
-.list-row{display:grid;grid-template-columns:48px 1fr 1fr 60px 60px 36px;gap:1rem;align-items:center;padding:.6rem .75rem;background:var(--surface);border:0.5px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color .2s}
-.list-row:hover{border-color:var(--border2)}
-.list-cover{width:40px;height:40px;border-radius:4px;object-fit:cover;background:var(--surface2)}
-.list-cover-ph{width:40px;height:40px;border-radius:4px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px}
-.list-title{font-size:14px;font-weight:500;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.list-artist{font-size:13px;color:var(--muted);font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.list-year{font-size:12px;color:var(--gold);font-family:var(--font-mono)}
-.list-genre{font-size:11px;color:var(--faint);font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.list-del{background:none;border:none;color:var(--faint);cursor:pointer;font-size:14px}
-.list-del:hover{color:#e24b4a}
-.list-header{display:grid;grid-template-columns:48px 1fr 1fr 60px 60px 36px;gap:1rem;padding:.3rem .75rem;margin-bottom:4px}
-.list-header span{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--faint);font-family:var(--font-mono)}
-.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:4rem 2rem;text-align:center;color:var(--muted)}
-.empty-icon{font-size:3rem;opacity:.4}
-.empty-state p{font-size:14px;max-width:240px;line-height:1.5}
-.detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
-.detail-panel{background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--radius-lg);width:min(620px,95vw);max-height:90vh;overflow-y:auto;position:relative}
-.detail-panel::-webkit-scrollbar{width:3px}
-.detail-panel::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-.detail-cover-wrap{position:relative;width:100%;height:280px;overflow:hidden;border-radius:var(--radius-lg) var(--radius-lg) 0 0;background:var(--surface2);display:flex;align-items:center;justify-content:center}
-.detail-cover-wrap img{width:100%;height:100%;object-fit:cover;display:block}
-.detail-cover-ph{font-size:5rem}
-.detail-cover-gradient{position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(transparent,var(--surface));pointer-events:none}
-.detail-close{position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.6);border:0.5px solid var(--border2);color:var(--cream);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10}
-.detail-body{padding:1.25rem 1.5rem 1.5rem}
-.detail-title{font-family:var(--font-display);font-size:1.5rem;font-weight:600;color:var(--cream);line-height:1.2;letter-spacing:-0.3px}
-.detail-artist{font-size:14px;color:var(--gold);font-family:var(--font-mono);margin-top:4px}
-.detail-meta{display:flex;gap:1.5rem;margin-top:1rem;flex-wrap:wrap}
-.meta-key{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-family:var(--font-mono)}
-.meta-val{font-size:14px;color:var(--cream);margin-top:2px}
-.detail-tracks{margin-top:1.25rem;border-top:0.5px solid var(--border);padding-top:1rem}
-.track-row{display:flex;gap:1rem;align-items:baseline;padding:.35rem 0;border-bottom:0.5px solid var(--border)}
-.track-num{font-size:11px;color:var(--faint);font-family:var(--font-mono);width:20px;flex-shrink:0}
-.track-title{font-size:13px;color:var(--cream);flex:1}
-.track-dur{font-size:11px;color:var(--muted);font-family:var(--font-mono)}
-.detail-notes textarea{width:100%;background:var(--surface2);border:0.5px solid var(--border2);border-radius:8px;padding:.65rem .85rem;color:var(--cream);font-family:var(--font-body);font-size:13px;outline:none;resize:vertical;min-height:70px;margin-top:.5rem}
-.detail-notes textarea:focus{border-color:var(--gold)}
-.detail-discogs{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--gold);font-family:var(--font-mono);margin-top:.75rem;text-decoration:none;opacity:.7}
-.detail-discogs:hover{opacity:1}
-.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(60px);background:var(--gold);color:#1a1510;padding:.5rem 1.25rem;border-radius:20px;font-size:13px;font-weight:500;z-index:999;transition:transform .3s ease;pointer-events:none}
-.toast.show{transform:translateX(-50%) translateY(0)}
-.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(201,168,76,.25);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.divider{border:none;border-top:0.5px solid var(--border);margin:.75rem 0}
-@media(max-width:700px){
-  .app-layout{grid-template-columns:1fr}
-  .sidebar{border-right:none;border-bottom:0.5px solid var(--border)}
-  .collection-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
-  .list-row{grid-template-columns:40px 1fr 60px 28px}
-  .list-row .list-artist,.list-row .list-genre{display:none}
-  header{flex-direction:column;align-items:flex-start}
+.result-title{font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.1px}
+.result-artist{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;font-weight:400}
+.result-year{font-size:11px;color:var(--accent);flex-shrink:0;font-weight:500}
+
+.btn-add{
+  width:100%;background:transparent;border:1.5px dashed var(--border2);
+  border-radius:12px;padding:.55rem 1rem;color:var(--muted);
+  font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;
+}
+.btn-add:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+.btn-add:disabled{opacity:.35;cursor:default}
+
+/* Manual form */
+.manual-form{display:flex;flex-direction:column;gap:.5rem;margin-top:.5rem}
+.field{
+  background:var(--bg);border:1px solid var(--border2);border-radius:10px;
+  padding:.5rem .75rem;color:var(--ink);font-family:var(--font);font-size:13px;
+  outline:none;transition:border-color .2s,box-shadow .2s;resize:none;width:100%;
+}
+.field:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+.field::placeholder{color:var(--faint)}
+
+.divider{border:none;border-top:1px solid var(--border);margin:.25rem 0}
+
+details summary{
+  font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;
+  color:var(--muted);cursor:pointer;user-select:none;list-style:none;
+  display:flex;align-items:center;gap:6px;padding:.25rem 0;
 }
 
-.sync-bar{display:none} /* replaced by dot indicator */
-.sync-status{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-family:var(--font-mono);cursor:pointer;padding:4px 10px;border-radius:20px;border:0.5px solid var(--border2);transition:all .2s;white-space:nowrap}
-.sync-status:hover{border-color:var(--border2);background:var(--surface)}
-.sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:background .3s}
-.sync-dot.offline{background:#555}
-.sync-dot.syncing{background:#f0c040;animation:pulse 1s ease infinite}
-.sync-dot.ok{background:#3ecf8e}
-.sync-dot.error{background:#e24b4a}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.config-modal{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
-.config-panel{background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--radius-lg);width:min(480px,94vw);padding:2rem}
-.config-panel h2{font-family:var(--font-display);font-size:1.3rem;font-weight:600;letter-spacing:-0.3px;margin-bottom:.5rem}
-.config-panel p{font-size:13px;color:var(--muted);margin-bottom:1.25rem;line-height:1.6}
-.config-panel label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-family:var(--font-mono);display:block;margin-bottom:.35rem;margin-top:.75rem}
-.config-panel input{width:100%;background:var(--surface2);border:0.5px solid var(--border2);border-radius:8px;padding:.6rem .85rem;color:var(--cream);font-family:var(--font-mono);font-size:13px;outline:none}
-.config-panel input:focus{border-color:var(--gold)}
-.config-panel input::placeholder{color:var(--faint)}
-.config-btn{width:100%;margin-top:1.25rem;background:var(--gold);color:#1a1510;border:none;border-radius:var(--radius);padding:.7rem 1rem;font-family:var(--font-body);font-size:14px;font-weight:500;cursor:pointer}
-.config-btn:hover{opacity:.88}
-.config-err{font-size:12px;color:#e24b4a;margin-top:.5rem;font-family:var(--font-mono);min-height:1.2em}
-.sync-status{font-size:11px;color:var(--muted);font-family:var(--font-mono);cursor:pointer;padding:2px 8px;border-radius:4px;border:0.5px solid transparent;transition:border-color .2s}
-.sync-status:hover{border-color:var(--border2)}
+/* ── RECENT SLIDER ── */
+.recent-section{padding:0 2.5rem;margin-bottom:.25rem}
+.recent-heading{
+  font-size:11px;font-weight:600;text-transform:uppercase;
+  letter-spacing:1.2px;color:var(--faint);margin-bottom:.85rem;
+}
+.recent-slider{
+  display:flex;gap:12px;
+  overflow-x:auto;
+  padding-bottom:2px;
+  -ms-overflow-style:none;
+  scrollbar-width:none;
+}
+.recent-slider::-webkit-scrollbar{display:none}
+.recent-item{
+  flex-shrink:0;
+  width:140px;
+  border-radius:16px;
+  overflow:hidden;
+  cursor:pointer;
+  position:relative;
+  aspect-ratio:1;
+  background:var(--bg2);
+  transition:transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s;
+}
+.recent-item:hover{transform:translateY(-4px) scale(1.02);box-shadow:0 16px 40px rgba(0,0,0,0.14)}
+.recent-item img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease}
+.recent-item:hover img{transform:scale(1.04)}
+.recent-item::after{
+  content:'';
+  position:absolute;inset:0;
+  background:linear-gradient(to bottom,transparent 45%,rgba(0,0,0,0.72));
+  pointer-events:none;
+}
+.recent-item-label{
+  position:absolute;
+  bottom:0;left:0;right:0;
+  padding:10px 10px 10px;
+  z-index:1;
+  pointer-events:none;
+}
+.recent-item-title{
+  font-size:11.5px;font-weight:600;color:#fff;
+  line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  letter-spacing:-.15px;
+  text-shadow:0 1px 4px rgba(0,0,0,0.3);
+}
+.recent-item-artist{
+  font-size:10px;font-weight:400;color:rgba(255,255,255,0.65);
+  margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.recent-item-ph{
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  font-size:3rem;background:linear-gradient(135deg,var(--bg2),var(--bg));
+}
 
+/* ── MAIN ── */
+.main{padding:1.5rem 2.5rem 2.5rem;display:flex;flex-direction:column;gap:1.25rem}
 
-.detail-toolbar{display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap}
-.edit-btn{background:transparent;border:0.5px solid var(--border2);border-radius:6px;padding:4px 12px;color:var(--muted);font-size:11px;font-family:var(--font-mono);cursor:pointer;transition:all .15s}
-.edit-btn:hover{border-color:var(--gold-mid);color:var(--gold)}
-.edit-btn.active{background:var(--gold);color:#1a1510;border-color:var(--gold)}
-.save-btn{background:var(--gold);color:#1a1510;border:none;border-radius:6px;padding:4px 14px;font-size:11px;font-family:var(--font-mono);cursor:pointer;font-weight:500}
-.save-btn:hover{opacity:.88}
-/* View mode */
-.edit-mode-off .edit-only{display:none}
-.edit-mode-off .view-only{display:block}
-/* Edit mode */
-.edit-mode-on .edit-only{display:block}
-.edit-mode-on .view-only{display:none}
-/* Edit fields */
-.edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-top:1rem}
-.edit-grid label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-family:var(--font-mono);display:block;margin-bottom:3px}
-.edit-field{background:var(--surface2);border:0.5px solid var(--border2);border-radius:7px;padding:.45rem .7rem;color:var(--cream);font-family:var(--font-body);font-size:13px;outline:none;width:100%;transition:border-color .2s}
-.edit-field:focus{border-color:var(--gold)}
-.edit-field.full{grid-column:1/-1}
-.cover-upload-zone{position:relative;cursor:pointer}
+/* Toolbar */
+.toolbar{display:flex;align-items:center;gap:.65rem;flex-wrap:wrap}
+.toolbar-search{flex:1;min-width:200px;position:relative}
+.toolbar-search input{
+  width:100%;background:var(--surface-solid);border:1px solid var(--border2);
+  border-radius:12px;padding:.58rem .75rem .58rem 2.2rem;
+  color:var(--ink);font-family:var(--font);font-size:13px;font-weight:400;
+  outline:none;transition:border-color .2s,box-shadow .2s;
+}
+.toolbar-search input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+.toolbar-search input::placeholder{color:var(--faint)}
+.toolbar-search .search-icon{left:8px;font-size:13px;color:var(--faint)}
+
+.shelf-row{display:flex;gap:.35rem;flex-wrap:wrap}
+.shelf-pill{
+  padding:5px 14px;border-radius:20px;border:1px solid var(--border2);
+  background:var(--surface-solid);color:var(--muted);font-size:12px;font-weight:500;
+  cursor:pointer;transition:all .12s;white-space:nowrap;letter-spacing:-.1px;
+}
+.shelf-pill:hover{border-color:var(--accent);color:var(--accent)}
+.shelf-pill.active{background:var(--ink);border-color:var(--ink);color:#fff}
+
+.view-toggle{
+  display:flex;background:var(--surface-solid);
+  border:1px solid var(--border2);border-radius:10px;overflow:hidden;
+}
+.view-btn{padding:6px 11px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:14px;transition:all .12s}
+.view-btn.active{background:var(--ink);color:#fff}
+
+.sort-sel{
+  background:var(--surface-solid);border:1px solid var(--border2);border-radius:10px;
+  padding:.48rem .7rem;color:var(--ink2);font-family:var(--font);font-size:12px;
+  font-weight:500;outline:none;cursor:pointer;
+}
+
+/* ── GRID ── */
+.cd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:1.1rem}
+
+.cd-card{
+  background:var(--surface-solid);
+  border-radius:18px;
+  border:1px solid var(--border);
+  cursor:pointer;
+  transition:transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s ease,border-color .15s;
+  overflow:hidden;
+  position:relative;
+  box-shadow:var(--shadow-card);
+}
+.cd-card:hover{
+  transform:translateY(-6px);
+  box-shadow:0 24px 60px rgba(0,0,0,0.13),0 4px 12px rgba(0,0,0,0.06);
+  border-color:rgba(0,0,0,0.04);
+}
+.cd-cover-wrap{position:relative;width:100%;aspect-ratio:1;background:var(--bg2);overflow:hidden}
+.cd-cover{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease}
+.cd-card:hover .cd-cover{transform:scale(1.04)}
+.cd-cover-ph{
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  font-size:3rem;background:linear-gradient(135deg,var(--bg2),var(--bg));position:relative;
+}
+.cd-cover-ph.loading::after{
+  content:'';position:absolute;width:18px;height:18px;
+  border:2px solid rgba(0,0,0,.08);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.cd-copies-badge{
+  position:absolute;top:8px;left:8px;
+  background:rgba(255,255,255,.88);
+  backdrop-filter:blur(8px);
+  border-radius:20px;padding:2px 8px;
+  font-size:10.5px;font-weight:600;color:var(--ink);
+  border:1px solid rgba(0,0,0,0.06);
+}
+.cd-info{padding:.9rem 1rem 1rem}
+.cd-title{
+  font-size:13px;font-weight:600;color:var(--ink);line-height:1.3;
+  letter-spacing:-.2px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.cd-artist{
+  font-size:11.5px;color:var(--muted);margin-top:3px;font-weight:400;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.05px;
+}
+.cd-year{
+  font-size:10.5px;color:var(--accent);margin-top:5px;font-weight:500;letter-spacing:.2px;
+}
+.cd-del{
+  position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;
+  background:rgba(255,255,255,.9);backdrop-filter:blur(8px);border:1px solid rgba(0,0,0,0.06);
+  color:var(--muted);font-size:11px;cursor:pointer;display:none;
+  align-items:center;justify-content:center;font-weight:600;transition:all .12s;
+}
+.cd-del:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.cd-card:hover .cd-del{display:flex}
+
+/* ── LIST ── */
+.cd-list{display:flex;flex-direction:column;gap:2px}
+.list-header-row{
+  display:grid;grid-template-columns:52px 1fr 160px 70px 70px 32px;
+  gap:.75rem;padding:.35rem 1rem;
+}
+.list-header-row span{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--faint)}
+.list-row{
+  display:grid;grid-template-columns:52px 1fr 160px 70px 70px 32px;
+  gap:.75rem;align-items:center;padding:.65rem 1rem;
+  background:var(--surface-solid);border-radius:12px;border:1px solid transparent;
+  cursor:pointer;transition:all .12s;
+}
+.list-row:hover{border-color:var(--border);box-shadow:var(--shadow)}
+.list-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;background:var(--bg2)}
+.list-thumb-ph{width:44px;height:44px;border-radius:8px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:20px}
+.list-title{font-size:13px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.15px}
+.list-artist{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400}
+.list-year{font-size:12px;color:var(--accent);font-weight:500}
+.list-genre{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.list-del-btn{background:none;border:none;color:var(--faint);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.list-del-btn:hover{color:var(--red)}
+
+/* ── EMPTY STATE ── */
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1rem;padding:6rem 2rem;text-align:center;
+}
+.empty-icon{font-size:3.5rem;opacity:.2}
+.empty-state p{font-size:15px;color:var(--muted);max-width:260px;line-height:1.6;font-weight:400}
+
+/* ── DETAIL OVERLAY ── */
+.overlay{
+  position:fixed;inset:0;background:rgba(10,8,20,.55);
+  backdrop-filter:blur(12px);z-index:100;
+  display:flex;align-items:center;justify-content:center;padding:1rem;
+}
+.detail-panel{
+  background:var(--surface-solid);border-radius:var(--radius-xl);
+  width:min(680px,100%);max-height:92vh;overflow-y:auto;
+  box-shadow:var(--shadow-lg);position:relative;
+  border:1px solid var(--border);
+}
+.detail-panel::-webkit-scrollbar{width:0}
+
+/* Cover hero */
+.detail-cover-hero{
+  position:relative;width:100%;height:300px;overflow:hidden;
+  border-radius:var(--radius-xl) var(--radius-xl) 0 0;background:var(--bg2);
+  display:flex;align-items:center;justify-content:center;
+}
+.detail-cover-hero img{width:100%;height:100%;object-fit:cover;display:block}
+.detail-cover-hero-ph{font-size:6rem;opacity:.25}
+.detail-hero-grad{position:absolute;bottom:0;left:0;right:0;height:180px;background:linear-gradient(transparent,var(--surface-solid))}
+.detail-close{
+  position:absolute;top:14px;right:14px;width:32px;height:32px;
+  border-radius:50%;background:rgba(255,255,255,.88);backdrop-filter:blur(8px);
+  border:1px solid rgba(0,0,0,0.06);color:var(--ink);font-size:13px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;
+  transition:all .15s;
+}
+.detail-close:hover{background:var(--ink);color:#fff}
+
+/* Cover upload overlay */
+.cover-upload-zone{position:absolute;inset:0;cursor:pointer}
 .cover-upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.cover-upload-overlay{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;opacity:0;transition:opacity .2s;border-radius:var(--radius-lg) var(--radius-lg) 0 0}
-.cover-upload-zone:hover .cover-upload-overlay{opacity:1}
-.cover-upload-overlay span{font-size:13px;color:#fff;font-family:var(--font-mono)}
-.cover-url-row{display:flex;gap:.5rem;margin-top:.5rem;grid-column:1/-1}
+.cover-upload-hover{
+  position:absolute;inset:0;background:rgba(0,0,0,.4);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;opacity:0;transition:opacity .2s;
+  border-radius:var(--radius-xl) var(--radius-xl) 0 0;
+}
+.cover-upload-zone:hover .cover-upload-hover{opacity:1}
+.cover-upload-hover span{font-size:13px;color:#fff;font-weight:500}
+
+.detail-body{padding:1.5rem 2rem 2rem}
+
+/* Toolbar in detail */
+.detail-toolbar{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem}
+.d-btn{
+  display:inline-flex;align-items:center;gap:5px;padding:5px 13px;
+  border-radius:20px;border:1px solid var(--border2);background:var(--bg);
+  font-size:12px;font-weight:500;color:var(--ink2);cursor:pointer;transition:all .12s;
+  font-family:var(--font);white-space:nowrap;letter-spacing:-.1px;
+}
+.d-btn:hover{border-color:var(--border2);background:var(--bg2)}
+.d-btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.d-btn.primary:hover{opacity:.85}
+.d-btn.gold{background:var(--accent-light);color:var(--accent);border-color:var(--accent-border)}
+
+/* Search links */
+.search-links{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:1.25rem}
+.search-link{
+  display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
+  border-radius:20px;font-size:11px;font-weight:500;text-decoration:none;
+  border:1px solid var(--border2);color:var(--muted);transition:all .12s;white-space:nowrap;
+  background:var(--bg);
+}
+.search-link:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+
+/* View mode */
+.detail-title-display{font-size:1.7rem;font-weight:700;letter-spacing:-.5px;color:var(--ink);line-height:1.1}
+.detail-artist-display{font-size:14px;font-weight:400;color:var(--muted);margin-top:.35rem}
+.detail-meta-grid{display:flex;gap:2rem;flex-wrap:wrap;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)}
+.meta-item .mk{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.9px;color:var(--faint)}
+.meta-item .mv{font-size:14px;font-weight:500;color:var(--ink);margin-top:.25rem;letter-spacing:-.1px}
+.detail-notes-view{font-size:13px;color:var(--muted);line-height:1.6;white-space:pre-wrap;margin-top:1rem;font-weight:400}
+
+/* Tracklist */
+.tracklist{margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)}
+.tracklist-label{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--faint);margin-bottom:.75rem}
+.track-row{display:flex;gap:.75rem;align-items:baseline;padding:.38rem 0;border-bottom:1px solid var(--border)}
+.track-row:last-child{border-bottom:none}
+.track-num{font-size:11px;color:var(--faint);width:18px;flex-shrink:0;text-align:right}
+.track-title{font-size:13px;color:var(--ink);flex:1;font-weight:400;letter-spacing:-.1px}
+.track-dur{font-size:11px;color:var(--faint);font-weight:400}
+
+/* Edit mode */
+.edit-mode-off .edit-only{display:none!important}
+.edit-mode-off .view-only{display:block}
+.edit-mode-on .edit-only{display:block}
+.edit-mode-on .view-only{display:none!important}
+.edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-top:.75rem}
+.edit-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);display:block;margin-bottom:3px}
+.edit-field{
+  background:var(--bg);border:1px solid var(--border2);border-radius:10px;
+  padding:.5rem .75rem;color:var(--ink);font-family:var(--font);font-size:13px;
+  outline:none;width:100%;transition:border-color .2s,box-shadow .2s;resize:none;
+}
+.edit-field:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+.edit-field.full{grid-column:1/-1}
+.cover-url-row{display:flex;gap:.5rem;grid-column:1/-1}
 .cover-url-row input{flex:1}
-.cover-url-row button{background:var(--gold);color:#1a1510;border:none;border-radius:7px;padding:.45rem .85rem;font-size:12px;cursor:pointer;white-space:nowrap}
+.cover-url-row button{
+  background:var(--ink);color:#fff;border:none;border-radius:10px;
+  padding:.5rem 1rem;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;
+}
+.copies-row{display:flex;align-items:center;gap:.5rem;margin-top:3px}
+.copies-btn{
+  width:28px;height:28px;border-radius:50%;background:var(--bg2);
+  border:1px solid var(--border2);color:var(--ink);font-size:16px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-weight:700;
+}
+.copies-btn:hover{background:var(--bg2);border-color:var(--accent)}
+.copies-input{text-align:center;width:50px;flex-shrink:0}
 
+/* Discogs link */
+.detail-discogs-link{
+  display:inline-flex;align-items:center;gap:5px;font-size:11px;
+  color:var(--muted);text-decoration:none;margin-top:.75rem;opacity:.7;
+}
+.detail-discogs-link:hover{opacity:1;color:var(--accent)}
+.refresh-cover-btn{
+  display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
+  border-radius:20px;font-size:11px;font-weight:500;
+  border:1px solid var(--border2);background:var(--bg);
+  color:var(--muted);cursor:pointer;margin-left:.5rem;
+}
+.refresh-cover-btn:hover{color:var(--accent);border-color:var(--accent-border);background:var(--accent-light)}
 
-.copies-badge{display:inline-flex;align-items:center;gap:4px;background:var(--gold-dim);border:0.5px solid var(--gold-mid);border-radius:20px;padding:2px 10px;font-size:11px;font-family:var(--font-mono);color:var(--gold);margin-top:4px}
-.cd-copies{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.7);border:0.5px solid var(--gold-mid);border-radius:12px;padding:2px 7px;font-size:10px;color:var(--gold);font-family:var(--font-mono)}
+/* ── MODALS ── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(10,8,20,.55);
+  backdrop-filter:blur(12px);z-index:200;
+  display:flex;align-items:center;justify-content:center;padding:1rem;
+}
+.modal-panel{
+  background:var(--surface-solid);border-radius:var(--radius-xl);
+  width:min(480px,100%);padding:2rem;box-shadow:var(--shadow-lg);
+  border:1px solid var(--border);
+}
+.modal-title{font-size:1.25rem;font-weight:700;letter-spacing:-.3px;margin-bottom:.35rem;color:var(--ink)}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:1.5rem;line-height:1.55;font-weight:400}
+.modal-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:.3rem;margin-top:1rem}
+.modal-input{
+  width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:10px;
+  padding:.6rem .85rem;color:var(--ink);font-family:var(--font);font-size:13px;
+  outline:none;transition:border-color .2s,box-shadow .2s;
+}
+.modal-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+.modal-input::placeholder{color:var(--faint)}
+.modal-err{font-size:12px;color:var(--red);margin-top:.5rem;min-height:1.2em;font-weight:400}
+.modal-btn{
+  width:100%;margin-top:1.25rem;background:var(--ink);color:#fff;border:none;
+  border-radius:12px;padding:.75rem 1rem;font-family:var(--font);
+  font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s;letter-spacing:-.1px;
+}
+.modal-btn:hover{opacity:.85}
+.modal-btn.outline{background:transparent;color:var(--ink2);border:1px solid var(--border2);margin-top:.5rem;font-weight:500}
+.modal-btn.outline:hover{background:var(--bg2)}
+.modal-btn.gold-outline{background:transparent;color:var(--accent);border:1px solid var(--accent-border);margin-top:.5rem;font-weight:500}
 
-
-.search-links{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.75rem}
-.search-link{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:11px;font-family:var(--font-mono);text-decoration:none;border:0.5px solid var(--border2);color:var(--muted);transition:all .15s;white-space:nowrap}
-.search-link:hover{border-color:var(--gold-mid);color:var(--gold);background:var(--gold-dim)}
-.search-link .sl-icon{font-size:12px}
-
-
-.scan-btn{width:100%;margin-top:.4rem;background:transparent;border:0.5px solid var(--border2);border-radius:var(--radius);padding:.55rem 1rem;color:var(--muted);font-family:var(--font-body);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.5rem;transition:all .2s}
-.scan-btn:hover{border-color:var(--gold-mid);color:var(--gold);background:var(--gold-dim)}
-.scanner-modal{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:400;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}
-.scanner-frame{position:relative;width:min(340px,90vw);border-radius:12px;overflow:hidden;background:#000}
-.scanner-frame video{width:100%;display:block;border-radius:12px}
+/* Scanner */
+.scanner-modal{position:fixed;inset:0;background:rgba(10,8,20,.97);z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.25rem}
+.scanner-frame{position:relative;width:min(340px,90vw);border-radius:var(--radius-xl);overflow:hidden;background:#000}
+.scanner-frame video{width:100%;display:block;border-radius:var(--radius-xl)}
 .scanner-aim{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
-.scanner-aim-inner{width:80%;height:25%;border:2px solid var(--gold);border-radius:4px;box-shadow:0 0 0 9999px rgba(0,0,0,.45)}
-.scanner-label{font-size:13px;color:var(--muted);font-family:var(--font-mono);text-align:center;max-width:300px;line-height:1.5}
-.scanner-result{background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;width:min(340px,90vw);max-height:60vh;overflow-y:auto}
-.scanner-result h3{font-family:var(--font-display);font-size:1.1rem;font-weight:600;margin-bottom:.25rem}
-.scanner-result p{font-size:12px;color:var(--muted);font-family:var(--font-mono)}
-.scanner-close{background:transparent;border:0.5px solid var(--border2);border-radius:8px;padding:.5rem 1.5rem;color:var(--muted);font-family:var(--font-mono);font-size:12px;cursor:pointer}
-.scanner-close:hover{border-color:var(--gold-mid);color:var(--gold)}
-.scan-add-btn{width:100%;background:var(--gold);color:#1a1510;border:none;border-radius:var(--radius);padding:.6rem 1rem;font-family:var(--font-body);font-size:14px;font-weight:500;cursor:pointer;margin-top:.75rem}
-.scan-add-btn:hover{opacity:.88}
-.barcode-display{font-family:var(--font-mono);font-size:11px;color:var(--faint);margin-top:.5rem}
+.scanner-aim-box{width:80%;height:22%;border:2px solid var(--accent);border-radius:6px;box-shadow:0 0 0 9999px rgba(0,0,0,.4)}
+.scanner-label{font-size:13px;color:rgba(255,255,255,.55);text-align:center;max-width:300px;line-height:1.5;font-weight:400}
+.scanner-result{
+  background:var(--surface-solid);border-radius:var(--radius-lg);
+  padding:1.25rem 1.5rem;width:min(340px,90vw);max-height:55vh;overflow-y:auto;
+}
+.scanner-result h3{font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:.2rem;letter-spacing:-.2px}
+.scanner-result p{font-size:12px;color:var(--muted);font-weight:400}
+.scan-close-btn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:.5rem 1.5rem;color:rgba(255,255,255,.55);font-family:var(--font);font-size:12px;cursor:pointer;font-weight:500}
+.scan-close-btn:hover{color:#fff;background:rgba(255,255,255,0.14)}
 
+/* Toast */
+.toast{
+  position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(60px);
+  background:rgba(29,29,31,0.9);backdrop-filter:blur(12px);
+  color:#fff;padding:.55rem 1.25rem;border-radius:20px;
+  font-size:13px;font-weight:500;z-index:999;transition:transform .25s ease;pointer-events:none;
+  box-shadow:var(--shadow-lg);letter-spacing:-.1px;
+  border:1px solid rgba(255,255,255,0.1);
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* Spinner */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px}
+.spinner.dark{border-color:rgba(0,0,0,.08);border-top-color:var(--ink)}
+
+/* Storage policy banner */
+.policy-banner{
+  position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);
+  width:min(500px,94vw);background:var(--surface-solid);border:1px solid var(--red);
+  border-radius:var(--radius-lg);padding:1.25rem 1.5rem;z-index:500;box-shadow:var(--shadow-lg);
+}
+
+@media(max-width:700px){
+  .app-body{grid-template-columns:1fr}
+  .sidebar{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}
+  .cd-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.9rem}
+  .list-row{grid-template-columns:44px 1fr 60px 28px}
+  .list-row .list-artist,.list-row .list-genre{display:none}
+  .list-header-row{display:none}
+  .header{padding:0 1.25rem;height:60px}
+  .logo-main{font-size:1.1rem}
+  .logo-sub{display:none}
+  .main{padding:1.25rem 1.25rem 2rem}
+  .recent-section{padding:0 1.25rem}
+  .recent-item{width:120px}
+}
 </style>
 </head>
 <body>
-<header>
-  <div class="header-left">
-    <h1>My <em>CD</em> Collection</h1>
-    <p id="header-sub">your personal disc library</p>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-brand">
+    <span class="logo-main">Discothèque</span>
+    <span class="logo-sep"></span>
+    <span class="logo-sub">Analog Library</span>
   </div>
-  <div class="stats-row" style="align-items:center;gap:1rem"><button class="sync-status" id="sync-status-btn" onclick="openConfig()" title="Cloud sync settings"><span class="sync-dot offline"></span>offline</button>
-    <div class="stat"><div class="stat-num" id="stat-count">0</div><div class="stat-label">discs</div></div>
-    <div class="stat"><div class="stat-num" id="stat-artists">0</div><div class="stat-label">artists</div></div>
-  </div></div>
+  <div class="header-right">
+    <div class="hdr-stat"><div class="hdr-stat-num" id="stat-count">0</div><div class="hdr-stat-label">discs</div></div>
+    <div class="hdr-divider"></div>
+    <div class="hdr-stat"><div class="hdr-stat-num" id="stat-artists">0</div><div class="hdr-stat-label">artists</div></div>
+    <div class="hdr-divider"></div>
+    <button class="sync-pill" id="sync-btn" onclick="openConfig()">
+      <span class="sync-dot offline" id="sync-dot"></span>
+      <span id="sync-label">offline</span>
+    </button>
+  </div>
 </header>
-<div class="app-layout">
+
+<!-- LAYOUT -->
+<!-- LAYOUT -->
+<div class="app-body">
+
+  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div>
-      <div class="section-label">Search &amp; add album</div>
-      <div class="search-box">
+      <div class="sidebar-section-label">Search & add</div>
+      <div class="search-wrap">
         <span class="search-icon">🔍</span>
-        <input id="mb-query" type="text" placeholder="Artist or album title…" />
+        <input id="q" type="text" placeholder="Artist or album…" />
       </div>
-      <button class="search-btn" id="mb-search-btn" onclick="mbSearch()">Search</button>
-      <button class="scan-btn" onclick="openScanner()">📷 Scan barcode</button>
+      <button class="btn-primary" style="margin-top:.5rem" id="search-btn" onclick="doSearch()">Search</button>
+      <button class="btn-secondary" style="margin-top:.4rem" onclick="openScanner()">📷 Scan barcode</button>
     </div>
-    <div id="results-section" style="display:none">
-      <div class="section-label">Results — tap to select</div>
+
+    <div id="results-wrap" style="display:none">
+      <div class="sidebar-section-label">Results</div>
       <div class="results-list" id="results-list"></div>
-      <button class="add-btn" id="add-selected-btn" disabled onclick="addSelected()">+ Add selected to collection</button>
+      <button class="btn-add" id="btn-add-selected" disabled onclick="addSelected()">+ Add to collection</button>
     </div>
+
     <hr class="divider">
+
     <details>
-      <summary style="font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:6px"><span>▸</span> Add manually</summary>
-      <div class="manual-form" style="margin-top:.75rem">
-        <input id="m-artist" type="text" placeholder="Artist" />
-        <input id="m-title" type="text" placeholder="Album title" />
-        <input id="m-year" type="text" placeholder="Year" />
-        <input id="m-genre" type="text" placeholder="Genre" />
-        <input id="m-label" type="text" placeholder="Label" />
-        <input id="m-shelf" type="text" placeholder="Shelf" />
-        <input id="m-copies" type="number" min="1" max="99" placeholder="Copies (default 1)" />
-        <input id="m-cover" type="text" placeholder="Cover image URL (optional)" />
-        <textarea id="m-notes" placeholder="Notes…" rows="2"></textarea>
-        <button class="add-btn" onclick="addManual()">+ Add to collection</button>
+      <summary><span>▸</span> Add manually</summary>
+      <div class="manual-form">
+        <input class="field" id="m-artist" placeholder="Artist" />
+        <input class="field" id="m-title" placeholder="Album title" />
+        <input class="field" id="m-year" placeholder="Year" />
+        <input class="field" id="m-genre" placeholder="Genre" />
+        <input class="field" id="m-label" placeholder="Label" />
+        <input class="field" id="m-shelf" placeholder="Shelf" />
+        <input class="field" id="m-copies" type="number" min="1" placeholder="Copies (default 1)" />
+        <input class="field" id="m-cover" placeholder="Cover image URL (optional)" />
+        <textarea class="field" id="m-notes" rows="2" placeholder="Notes…"></textarea>
+        <button class="btn-primary" onclick="addManual()">+ Add</button>
       </div>
     </details>
   </aside>
+
+  <!-- MAIN -->
   <main class="main">
+
+<!-- RECENT SLIDER -->
+<div class="recent-section">
+  <div class="recent-heading">Recently Added</div>
+  <div class="recent-slider" id="recent-slider"></div>
+</div>
     <div class="toolbar">
       <div class="toolbar-search">
         <span class="search-icon">🔍</span>
-        <input type="text" id="filter-input" placeholder="Filter collection…" oninput="renderCollection()" />
+        <input id="filter-q" placeholder="Filter…" oninput="renderCollection()" />
       </div>
-      <select class="sort-select" id="sort-select" onchange="renderCollection()">
+      <select class="sort-sel" id="sort-sel" onchange="renderCollection()">
         <option value="added">Recently added</option>
-        <option value="title">Album A–Z</option>
+        <option value="title">Title A–Z</option>
         <option value="artist">Artist A–Z</option>
         <option value="year">Year</option>
       </select>
@@ -281,1416 +709,942 @@ header{padding:2.5rem 2rem 1.5rem;border-bottom:0.5px solid var(--border);displa
         <button class="view-btn" id="btn-list" onclick="setView('list')">☰</button>
       </div>
     </div>
-    <div class="shelf-pills" id="shelf-pills"></div>
-    <div id="collection-container"></div>
+    <div class="shelf-row" id="shelf-row"></div>
+    <div id="collection-wrap"></div>
   </main>
 </div>
-<div class="detail-overlay" id="detail-overlay" style="display:none" onclick="closeDetail(event)">
-  <div class="detail-panel">
-    <div class="detail-cover-wrap" id="d-cover-wrap"><div class="detail-cover-ph">💿</div></div>
-    <button class="detail-close" onclick="closeDetailBtn()">✕</button>
-    <div class="detail-body edit-mode-off" id="d-body">
-      <!-- toolbar -->
-      <div class="detail-toolbar">
-        <button class="edit-btn" id="d-edit-btn" onclick="toggleEditMode()">✎ Edit</button>
-        <button class="save-btn edit-only" onclick="saveEdit()" style="display:none">✓ Save</button>
-        <button class="edit-btn edit-only" onclick="cancelEdit()" style="display:none">✕ Cancel</button>
-        <a id="d-discogs" class="detail-discogs view-only" target="_blank" rel="noopener" style="display:none">↗ Discogs</a>
-        <button class="edit-btn view-only" onclick="refreshCover(activeDetailId)">↺ cover</button>
+
+<!-- DETAIL OVERLAY -->
+<div class="overlay" id="detail-overlay" style="display:none" onclick="closeDetailBg(event)">
+  <div class="detail-panel" id="detail-panel">
+    <div class="detail-cover-hero" id="d-hero">
+      <div class="detail-cover-hero-ph">💿</div>
+      <div class="detail-hero-grad"></div>
+      <div class="cover-upload-zone" id="d-upload-zone">
+        <input type="file" accept="image/*" onchange="handleCoverUpload(event)" />
+        <div class="cover-upload-hover"><span style="font-size:1.5rem">📷</span><span>Change cover</span></div>
       </div>
+    </div>
+    <button class="detail-close" onclick="closeDetail()">✕</button>
+    <div class="detail-body edit-mode-off" id="d-body">
+
+      <!-- TOOLBAR -->
+      <div class="detail-toolbar">
+        <button class="d-btn" id="d-edit-btn" onclick="toggleEdit()">✎ Edit</button>
+        <button class="d-btn primary edit-only" onclick="saveEdit()">✓ Save</button>
+        <button class="d-btn edit-only" onclick="cancelEdit()">✕ Cancel</button>
+        <a class="d-btn view-only" id="d-discogs-link" href="#" target="_blank" rel="noopener" style="display:none">↗ Discogs</a>
+        <button class="refresh-cover-btn view-only" onclick="refreshCover(activeId)">↺ cover</button>
+      </div>
+
+      <!-- SEARCH LINKS (view mode) -->
+      <div class="search-links view-only" id="d-search-links"></div>
 
       <!-- VIEW MODE -->
       <div class="view-only">
-        <!-- Online search links -->
-        <div class="search-links" id="d-search-links"></div>
-        <div class="detail-title" id="d-title" style="margin-top:.5rem"></div>
-        <div class="detail-artist" id="d-artist"></div>
-        <div class="detail-meta" id="d-meta"></div>
-        <div class="detail-tracks" id="d-tracks"></div>
-        <div class="detail-notes">
-          <div class="meta-key" style="margin-top:1rem">Notes</div>
-          <div id="d-notes-view" style="font-size:13px;color:var(--muted);margin-top:.35rem;line-height:1.6;white-space:pre-wrap"></div>
-        </div>
+        <div class="detail-title-display" id="d-title"></div>
+        <div class="detail-artist-display" id="d-artist"></div>
+        <div class="detail-meta-grid" id="d-meta"></div>
+        <div class="detail-notes-view" id="d-notes-view"></div>
+        <div class="tracklist" id="d-tracklist"></div>
       </div>
 
       <!-- EDIT MODE -->
       <div class="edit-only" style="display:none">
         <div class="edit-grid">
           <div style="grid-column:1/-1">
-            <label>Cover image — find one via Google Images or Discogs above, right-click → copy image address, paste here</label>
+            <label class="edit-label">Cover image</label>
             <div class="cover-url-row">
-              <input class="edit-field" id="e-cover-url" type="text" placeholder="Paste image URL…" />
+              <input class="edit-field" id="e-cover" placeholder="Paste image URL…" />
               <button onclick="applyCoverUrl()">Apply</button>
             </div>
             <div style="margin-top:.4rem">
-              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--muted);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:1px">
+              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--muted);font-family:var(--font);font-weight:600;text-transform:uppercase;letter-spacing:.8px">
                 <input type="file" id="e-cover-file" accept="image/*" onchange="handleCoverUpload(event)" style="display:none" />
-                <span style="background:var(--surface2);border:0.5px solid var(--border2);border-radius:7px;padding:4px 12px">↑ Upload from device</span>
+                <span style="background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:3px 10px">↑ Upload from device</span>
               </label>
             </div>
           </div>
+          <div><label class="edit-label">Artist</label><input class="edit-field" id="e-artist" /></div>
+          <div><label class="edit-label">Title</label><input class="edit-field" id="e-title" /></div>
+          <div><label class="edit-label">Year</label><input class="edit-field" id="e-year" /></div>
+          <div><label class="edit-label">Genre</label><input class="edit-field" id="e-genre" /></div>
+          <div><label class="edit-label">Label</label><input class="edit-field" id="e-label" /></div>
+          <div><label class="edit-label">Country</label><input class="edit-field" id="e-country" /></div>
+          <div><label class="edit-label">Shelf</label><input class="edit-field" id="e-shelf" /></div>
           <div>
-            <label>Artist</label>
-            <input class="edit-field" id="e-artist" type="text" />
-          </div>
-          <div>
-            <label>Album title</label>
-            <input class="edit-field" id="e-title" type="text" />
-          </div>
-          <div>
-            <label>Year</label>
-            <input class="edit-field" id="e-year" type="text" />
-          </div>
-          <div>
-            <label>Genre</label>
-            <input class="edit-field" id="e-genre" type="text" />
-          </div>
-          <div>
-            <label>Label</label>
-            <input class="edit-field" id="e-label" type="text" />
-          </div>
-          <div>
-            <label>Country</label>
-            <input class="edit-field" id="e-country" type="text" />
-          </div>
-          <div>
-            <label>Shelf</label>
-            <input class="edit-field" id="e-shelf" type="text" />
-          </div>
-          <div>
-            <label>Cat #</label>
-            <input class="edit-field" id="e-catno" type="text" />
-          </div>
-          <div>
-            <label>Copies in library</label>
-            <div style="display:flex;align-items:center;gap:.5rem;margin-top:3px">
-              <button onclick="changeCopies(-1)" style="width:30px;height:30px;border-radius:50%;background:var(--surface2);border:0.5px solid var(--border2);color:var(--cream);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">−</button>
-              <input class="edit-field" id="e-copies" type="number" min="1" max="99" style="text-align:center;width:60px;flex-shrink:0" />
-              <button onclick="changeCopies(1)" style="width:30px;height:30px;border-radius:50%;background:var(--surface2);border:0.5px solid var(--border2);color:var(--cream);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">+</button>
+            <label class="edit-label">Copies</label>
+            <div class="copies-row">
+              <button class="copies-btn" onclick="chgCopies(-1)">−</button>
+              <input class="edit-field copies-input" id="e-copies" type="number" min="1" max="99" />
+              <button class="copies-btn" onclick="chgCopies(1)">+</button>
             </div>
           </div>
-          <div style="grid-column:1/-1">
-            <label>Notes</label>
-            <textarea class="edit-field" id="e-notes" rows="3" style="resize:vertical"></textarea>
-          </div>
-          <div style="grid-column:1/-1">
-            <label>Tracklist (one per line: "1. Title (3:45)" or just "Title")</label>
-            <textarea class="edit-field" id="e-tracks" rows="10" style="resize:vertical;font-family:var(--font-mono);font-size:12px"></textarea>
-          </div>
+          <div><label class="edit-label">Cat #</label><input class="edit-field" id="e-catno" /></div>
+          <div class="full"><label class="edit-label">Notes</label><textarea class="edit-field" id="e-notes" rows="3" style="resize:vertical"></textarea></div>
+          <div class="full"><label class="edit-label">Tracklist — one per line: "1. Title (3:45)"</label><textarea class="edit-field" id="e-tracks" rows="10" style="resize:vertical;font-family:var(--font);font-size:12px"></textarea></div>
         </div>
       </div>
+
     </div>
   </div>
 </div>
 
-<div class="sync-bar" id="sync-bar"></div>
-
-<div class="config-modal" id="config-modal" style="display:none">
-  <div class="config-panel">
-    <h2>Connect to <em style="color:var(--gold);font-style:italic">Supabase</em></h2>
-    <p>Enter your Supabase project URL and anon key. Your collection will sync to the cloud and be available on any device. These credentials are stored only in your browser.</p>
-    <label>Supabase Project URL</label>
-    <input id="cfg-url" type="text" placeholder="https://xxxx.supabase.co" />
-    <label>Anon / Public Key</label>
-    <input id="cfg-key" type="text" placeholder="eyJhbGc..." />
-    <label>Your Password (protects your data)</label>
-    <input id="cfg-pass" type="password" placeholder="Choose a strong password" />
-    <div class="config-err" id="cfg-err"></div>
-    <button class="config-btn" onclick="saveConfig()">Connect &amp; Sync</button>
-    <button class="config-btn" style="margin-top:.5rem;background:transparent;border:0.5px solid var(--gold-mid);color:var(--gold)" onclick="forcePush()">↑ Force push all CDs to cloud</button>
-    <button class="config-btn" style="margin-top:.5rem;background:transparent;border:0.5px solid var(--border2);color:var(--muted)" onclick="getSetupLink()">🔗 Copy setup link for other devices</button>
+<!-- CONFIG MODAL -->
+<div class="modal-overlay" id="config-modal" style="display:none">
+  <div class="modal-panel">
+    <div class="modal-title">Cloud sync</div>
+    <div class="modal-sub">Connect to Supabase to sync your collection across all devices. Your URL and anon key are stored only in your browser.</div>
+    <label class="modal-label">Supabase Project URL</label>
+    <input class="modal-input" id="cfg-url" placeholder="https://xxxx.supabase.co" />
+    <label class="modal-label">Anon / Public Key</label>
+    <input class="modal-input" id="cfg-key" placeholder="eyJhbGc…" />
+    <label class="modal-label">Password (protects your data)</label>
+    <input class="modal-input" id="cfg-pass" type="password" placeholder="Choose a password" />
+    <div class="modal-err" id="cfg-err"></div>
+    <button class="modal-btn" onclick="saveConfig()">Connect & Sync</button>
+    <button class="modal-btn outline" onclick="forcePush()">↑ Force push all CDs to cloud</button>
+    <button class="modal-btn outline" onclick="getSetupLink()">🔗 Copy setup link for other devices</button>
+    <button class="modal-btn outline" style="color:var(--muted)" onclick="document.getElementById('config-modal').style.display='none'">Cancel</button>
   </div>
 </div>
 
-
-<!-- BARCODE SCANNER MODAL -->
-<div id="scanner-modal" style="display:none" class="scanner-modal">
-  <div class="scanner-frame" id="scanner-frame">
+<!-- SCANNER MODAL -->
+<div class="scanner-modal" id="scanner-modal" style="display:none">
+  <div class="scanner-frame">
     <video id="scanner-video" autoplay playsinline muted></video>
-    <div class="scanner-aim"><div class="scanner-aim-inner"></div></div>
+    <div class="scanner-aim"><div class="scanner-aim-box"></div></div>
   </div>
-  <div class="scanner-label" id="scanner-label">Point your camera at the CD barcode</div>
-  <div id="scanner-result-wrap" style="display:none" class="scanner-result">
+  <div class="scanner-label" id="scanner-label">Point camera at the CD barcode</div>
+  <div id="scanner-result" style="display:none" class="scanner-result">
     <div style="display:flex;gap:.75rem;align-items:flex-start">
-      <img id="scan-cover" style="width:64px;height:64px;border-radius:6px;object-fit:cover;background:var(--surface2);flex-shrink:0" />
+      <img id="scan-cover" style="width:60px;height:60px;border-radius:8px;object-fit:cover;background:var(--bg2);flex-shrink:0" />
       <div style="flex:1;min-width:0">
         <h3 id="scan-title"></h3>
         <p id="scan-artist"></p>
         <p id="scan-meta" style="margin-top:2px"></p>
-        <p class="barcode-display" id="scan-barcode"></p>
+        <p id="scan-barcode" style="font-size:10px;color:var(--faint);margin-top:4px;font-family:var(--font)"></p>
       </div>
     </div>
-    <button class="scan-add-btn" id="scan-add-btn" onclick="addScannedCD()">+ Add to collection</button>
+    <button class="btn-primary" style="margin-top:.75rem" onclick="addScannedCD()">+ Add to collection</button>
   </div>
   <div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center">
-    <button class="scanner-close" onclick="closeScanner()">✕ Close</button>
-    <button class="scanner-close" id="scan-again-btn" style="display:none" onclick="restartScanner()">↺ Scan another</button>
+    <button class="scan-close-btn" onclick="closeScanner()">✕ Close</button>
+    <button class="scan-close-btn" id="scan-again-btn" style="display:none" onclick="restartScanner()">↺ Scan another</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
+
 <script>
-const SEED = [];
-
-// ── COVER ART via iTunes Search API ──
-const coverCache = {};
-
-function normalize(s) {
-  return (s || '').toLowerCase()
-    .replace(/[''`]/g, "'")
-    .replace(/[^a-z0-9 ']/g, ' ')
-    .replace(/\s+/g, ' ').trim();
-}
-
-function similarity(a, b) {
-  // What fraction of words in `a` appear in `b`
-  const wa = normalize(a).split(' ').filter(w => w.length > 1);
-  const nb = normalize(b);
-  if (!wa.length) return 0;
-  const hits = wa.filter(w => nb.includes(w)).length;
-  return hits / wa.length;
-}
-
-function scoreMatch(result, artist, title) {
-  const rArtist = result.artistName || '';
-  const rAlbum  = result.collectionName || '';
-  const artistSim = Math.max(similarity(artist, rArtist), similarity(rArtist, artist));
-  const titleSim  = Math.max(similarity(title,  rAlbum),  similarity(rAlbum,  title));
-  // Must match both to avoid wrong album covers
-  if (artistSim < 0.4 || titleSim < 0.4) return 0;
-  return (artistSim * 0.5) + (titleSim * 0.5);
-}
-
-async function fetchCover(artist, title, id) {
-  const key = `${artist}||${title}`;
-  if (coverCache[key] !== undefined) return coverCache[key];
-  coverCache[key] = null;
-
-  // Strip bracketed suffixes but keep main title/artist
-  const cleanArtist = artist.replace(/\bfeaturing\b.*/i,'').replace(/[([].*/,'').trim();
-  const cleanTitle  = title.replace(/[([].*/,'').trim();
-  const isVarious   = /various/i.test(artist);
-
-  // Query strategies — most specific first
-  const queries = isVarious
-    ? [`${cleanTitle}`, `${cleanTitle} soundtrack`, `${cleanTitle} various`]
-    : [`${cleanArtist} ${cleanTitle}`, `${cleanTitle} ${cleanArtist}`, `${cleanArtist}`];
-
-  let bestResult = null;
-  let bestScore  = 0;
-
-  for (const q of queries) {
-    try {
-      const url = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=album&limit=10&country=us`;
-      const res = await fetch(url);
-      if (!res.ok) continue;
-      const data = await res.json();
-
-      for (const r of (data.results || [])) {
-        const score = scoreMatch(r, cleanArtist, cleanTitle);
-        if (score > bestScore) { bestScore = score; bestResult = r; }
-      }
-
-      // If we have a confident match (>0.7), stop searching
-      if (bestScore >= 0.7) break;
-    } catch(e) {}
+const SEED = [
+  {
+    "id": 1, "mbid": null, "discogsId": "", "title": "Kind of Blue",
+    "artist": "Miles Davis", "year": "1959", "label": "Columbia",
+    "genre": "Jazz", "country": "US", "catNo": "CL 1355",
+    "shelf": "Jazz", "coverUrl": "", "tracks": [
+      {"num":"1","title":"So What","duration":"9:22"},
+      {"num":"2","title":"Freddie Freeloader","duration":"9:46"},
+      {"num":"3","title":"Blue in Green","duration":"5:37"},
+      {"num":"4","title":"All Blues","duration":"11:33"},
+      {"num":"5","title":"Flamenco Sketches","duration":"9:26"}
+    ], "notes": "One of the best-selling jazz albums of all time.", "addedAt": 1700000003000
+  },
+  {
+    "id": 2, "mbid": null, "discogsId": "", "title": "Rumours",
+    "artist": "Fleetwood Mac", "year": "1977", "label": "Warner Bros.",
+    "genre": "Rock, Pop", "country": "US", "catNo": "BSK 3010",
+    "shelf": "Rock", "coverUrl": "", "tracks": [
+      {"num":"1","title":"Second Hand News","duration":"2:43"},
+      {"num":"2","title":"Dreams","duration":"4:14"},
+      {"num":"3","title":"Never Going Back Again","duration":"2:02"},
+      {"num":"4","title":"Don't Stop","duration":"3:11"},
+      {"num":"5","title":"Go Your Own Way","duration":"3:38"},
+      {"num":"6","title":"The Chain","duration":"4:30"}
+    ], "notes": "Demo entry — delete or replace with your own.", "addedAt": 1700000002000
+  },
+  {
+    "id": 3, "mbid": null, "discogsId": "", "title": "Thriller",
+    "artist": "Michael Jackson", "year": "1982", "label": "Epic",
+    "genre": "Pop, R&B", "country": "US", "catNo": "QE 38112",
+    "shelf": "Pop", "coverUrl": "", "tracks": [
+      {"num":"1","title":"Wanna Be Startin' Somethin'","duration":"6:03"},
+      {"num":"2","title":"Baby Be Mine","duration":"4:20"},
+      {"num":"3","title":"The Girl Is Mine","duration":"3:42"},
+      {"num":"4","title":"Thriller","duration":"5:57"},
+      {"num":"5","title":"Beat It","duration":"4:18"},
+      {"num":"6","title":"Billie Jean","duration":"4:54"},
+      {"num":"7","title":"Human Nature","duration":"4:06"},
+      {"num":"8","title":"P.Y.T. (Pretty Young Thing)","duration":"3:58"},
+      {"num":"9","title":"The Lady in My Life","duration":"4:59"}
+    ], "notes": "Demo entry — delete or replace with your own.", "addedAt": 1700000001000
   }
+];
+<!-- CONFIG MODAL -->
+<div class="modal-overlay" id="config-modal" style="display:none">
+  <div class="modal-panel">
+    <div class="modal-title">Cloud Sync</div>
+    <div class="modal-sub">Connect a free <a href="https://supabase.com" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:500">Supabase</a> project to sync your collection across devices. Your credentials are stored only in your browser — never on our servers.<br><br>
+    <strong style="font-size:12px;color:var(--ink)">Setup in 2 minutes:</strong> create a project at supabase.com → go to Project Settings → API → copy the URL and anon key below.</div>
+    <label class="modal-label">Supabase Project URL</label>
+    <input class="modal-input" id="cfg-url" placeholder="https://xxxxxxxxxxxx.supabase.co" />
+    <label class="modal-label">Anon / Public Key</label>
+    <input class="modal-input" id="cfg-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…" />
+    <label class="modal-label">Collection Password <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;color:var(--faint)">(optional — keeps your data private)</span></label>
+    <input class="modal-input" id="cfg-pass" type="password" placeholder="Choose a password" />
+    <div class="modal-err" id="cfg-err"></div>
+    <button class="modal-btn" onclick="saveConfig()">Connect & Sync</button>
+    <button class="modal-btn outline" onclick="forcePush()">↑ Push collection to cloud</button>
+    <button class="modal-btn outline" onclick="getSetupLink()">🔗 Copy setup link for other devices</button>
+    <button class="modal-btn outline" style="color:var(--muted)" onclick="document.getElementById('config-modal').style.display='none'">Cancel</button>
+  </div>
+</div>
 
-  // Only use the result if score is good enough — no fallback to wrong covers
-  if (bestResult && bestScore >= 0.4 && bestResult.artworkUrl100) {
-    const imgUrl = bestResult.artworkUrl100
-      .replace('100x100bb', '600x600bb')
-      .replace('/100x100/', '/600x600/');
-    coverCache[key] = imgUrl;
-    const cd = collection.find(c => c.id === id);
-    if (cd) { cd.coverUrl = imgUrl; persistSave(true); } // skipCloud — covers push only on explicit user action
-    return imgUrl;
-  }
+<!-- WELCOME MODAL -->
+<div class="modal-overlay" id="welcome-modal" style="display:none">
+  <div class="modal-panel" style="text-align:center">
+    <div style="font-size:2.5rem;margin-bottom:1rem">💿</div>
+    <div class="modal-title" style="text-align:center">Welcome to Discothèque</div>
+    <div class="modal-sub" style="text-align:center">Your personal analog music library.<br>Search for albums by title or artist, scan barcodes, or add them manually. Your collection lives in your browser — optionally backed up to Supabase.</div>
+    <button class="modal-btn" onclick="document.getElementById('welcome-modal').style.display='none'">Start building my library</button>
+    <button class="modal-btn outline" onclick="document.getElementById('welcome-modal').style.display='none';openConfig()">Connect cloud sync first</button>
+  </div>
+</div>
 
-  coverCache[key] = '';
-  return null;
+<!-- SCANNER MODAL -->
+<div class="scanner-modal" id="scanner-modal" style="display:none">
+  <div class="scanner-frame">
+    <video id="scanner-video" autoplay playsinline muted></video>
+    <div class="scanner-aim"><div class="scanner-aim-box"></div></div>
+  </div>
+  <div class="scanner-label" id="scanner-label">Point camera at the CD barcode</div>
+  <div id="scanner-result" style="display:none" class="scanner-result">
+    <div style="display:flex;gap:.75rem;align-items:flex-start">
+      <img id="scan-cover" style="width:60px;height:60px;border-radius:8px;object-fit:cover;background:var(--bg2);flex-shrink:0" />
+      <div style="flex:1;min-width:0">
+        <h3 id="scan-title"></h3>
+        <p id="scan-artist"></p>
+        <p id="scan-meta" style="margin-top:2px"></p>
+        <p id="scan-barcode" style="font-size:10px;color:var(--faint);margin-top:4px;font-family:var(--font)"></p>
+      </div>
+    </div>
+    <button class="btn-primary" style="margin-top:.75rem" onclick="addScannedCD()">+ Add to collection</button>
+  </div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center">
+    <button class="scan-close-btn" onclick="closeScanner()">✕ Close</button>
+    <button class="scan-close-btn" id="scan-again-btn" style="display:none" onclick="restartScanner()">↺ Scan another</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+
+// ── CONFIG & STORAGE ──
+let sb=null,syncEnabled=false,syncTimer=null;
+const STORAGE_KEY='discotheque_v1',CONFIG_KEY='cd_supabase_cfg',TABLE='cd_collection';
+
+function getConfig(){try{return JSON.parse(localStorage.getItem(CONFIG_KEY)||'null')}catch(e){return null}}
+
+function setSyncStatus(state,text){
+  const dot=document.getElementById('sync-dot');
+  const lbl=document.getElementById('sync-label');
+  if(dot){dot.className='sync-dot '+state}
+  if(lbl)lbl.textContent=text;
 }
 
-// Allow manually refreshing a cover (clears cache for that entry)
-async function refreshCover(id) {
-  const cd = collection.find(c => c.id === id);
-  if (!cd) return;
-  const key = `${cd.artist}||${cd.title}`;
-  delete coverCache[key];
-  cd.coverUrl = '';
-  persistSave();
-  const url = await fetchCover(cd.artist, cd.title, id);
-  if (url) {
-    // Update detail panel if open
-    const wrap = document.getElementById('d-cover-wrap');
-    if (wrap && activeDetailId === id) {
-      wrap.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover" /><div class="detail-cover-gradient"></div>`;
-    }
-    updateCardCover(id, url);
-    toast('Cover updated');
-  } else {
-    toast('No matching cover found');
-  }
-}
-
-// ── STATE ──
-let collection = [];
-let viewMode = 'grid';
-let selectedResult = null;
-let activeDetailId = null;
-let searchResults = [];
-let activeShelf = 'all';
-let saveTimer = null;
-
-// ── SUPABASE CONFIG ──
-let sb = null;
-let syncEnabled = false;
-let syncTimer = null;
-const STORAGE_KEY = 'cd_collection_v3';
-const CONFIG_KEY  = 'cd_supabase_cfg';
-const TABLE = 'cd_collection';
-
-function getConfig() {
-  try { return JSON.parse(localStorage.getItem(CONFIG_KEY) || 'null'); } catch(e) { return null; }
-}
-
-function setSyncStatus(state, text) {
-  const btn = document.getElementById('sync-status-btn');
-  if (!btn) return;
-  // Map state to dot class and label
-  const dotClass = {ok:'ok', syncing:'syncing', error:'error', '':'offline'}[state] || 'offline';
-  btn.innerHTML = `<span class="sync-dot ${dotClass}"></span>${text}`;
-}
-
-async function initSupabase() {
-  const cfg = getConfig();
-  if (!cfg?.url || !cfg?.key) { setSyncStatus('', 'offline'); return false; }
-  try {
-    setSyncStatus('syncing', 'connecting…');
-    sb = window.supabase.createClient(cfg.url, cfg.key);
-    syncEnabled = true;
-    setSyncStatus('ok', 'synced');
+async function initSupabase(){
+  const cfg=getConfig();
+  if(!cfg?.url||!cfg?.key){setSyncStatus('offline','offline');return false}
+  try{
+    setSyncStatus('syncing','connecting…');
+    sb=window.supabase.createClient(cfg.url,cfg.key);
+    syncEnabled=true;
+    setSyncStatus('ok','synced');
     return true;
-  } catch(e) { setSyncStatus('error', 'error'); return false; }
+  }catch(e){setSyncStatus('error','error');return false}
 }
 
-async function hashPass(pass) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pass));
+async function hashPass(p){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(p));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-function openConfig() {
-  const cfg = getConfig();
-  if (cfg) {
-    document.getElementById('cfg-url').value = cfg.url || '';
-    document.getElementById('cfg-key').value = cfg.key || '';
-    document.getElementById('cfg-pass').value = '';
-  }
-  document.getElementById('config-modal').style.display = 'flex';
+function openConfig(){
+  const cfg=getConfig();
+  if(cfg){document.getElementById('cfg-url').value=cfg.url||'';document.getElementById('cfg-key').value=cfg.key||''}
+  document.getElementById('config-modal').style.display='flex';
 }
 
-async function saveConfig() {
-  const url  = document.getElementById('cfg-url').value.trim().replace(/\/+$/, '');
-  const key  = document.getElementById('cfg-key').value.trim();
-  const pass = document.getElementById('cfg-pass').value;
-  const errEl = document.getElementById('cfg-err');
-  errEl.textContent = '';
-  if (!url || !key) { errEl.textContent = 'URL and key are required.'; return; }
-  if (!url.startsWith('https://')) { errEl.textContent = 'URL must start with https://'; return; }
-  const btn = document.querySelector('.config-btn');
-  btn.textContent = 'Connecting…'; btn.disabled = true;
-  try {
-    const client = window.supabase.createClient(url, key);
-    const { error } = await client.from(TABLE).select('id').limit(1);
-    if (error && error.code !== 'PGRST116') throw new Error(error.message);
-    const passHash = pass ? await hashPass(pass) : (getConfig()?.passHash || 'default');
-    localStorage.setItem(CONFIG_KEY, JSON.stringify({ url, key, passHash }));
-    sb = client; syncEnabled = true;
-    document.getElementById('config-modal').style.display = 'none';
-    toast('Connected to Supabase ✓');
-    setSyncStatus('ok', 'connected');
+async function saveConfig(){
+  const url=document.getElementById('cfg-url').value.trim().replace(/\/+$/,'');
+  const key=document.getElementById('cfg-key').value.trim();
+  const pass=document.getElementById('cfg-pass').value;
+  const errEl=document.getElementById('cfg-err');
+  errEl.textContent='';
+  if(!url||!key){errEl.textContent='URL and key are required.';return}
+  const btn=document.querySelector('#config-modal .modal-btn');
+  btn.innerHTML='<span class="spinner"></span>Connecting…';btn.disabled=true;
+  try{
+    const client=window.supabase.createClient(url,key);
+    const{error}=await client.from(TABLE).select('id').limit(1);
+    if(error&&error.code!=='PGRST116')throw new Error(error.message);
+    const passHash=pass?await hashPass(pass):(getConfig()?.passHash||'default');
+    localStorage.setItem(CONFIG_KEY,JSON.stringify({url,key,passHash}));
+    sb=client;syncEnabled=true;
+    document.getElementById('config-modal').style.display='none';
+    toast('Connected ✓');setSyncStatus('ok','synced');
     await pushToCloud();
     checkStorageAccess();
-  } catch(e) {
-    errEl.textContent = 'Connection failed: ' + (e.message || 'check URL and key');
-  } finally { btn.textContent = 'Connect & Sync'; btn.disabled = false; }
+  }catch(e){errEl.textContent='Connection failed: '+(e.message||'check URL and key')}
+  finally{btn.innerHTML='Connect & Sync';btn.disabled=false}
 }
 
-function getSetupLink() {
-  const cfg = getConfig();
-  if (!cfg?.url || !cfg?.key) { toast('Connect to Supabase first'); return; }
-  // Encode credentials in URL hash — never sent to any server
-  const encoded = btoa(JSON.stringify({ url: cfg.url, key: cfg.key, passHash: cfg.passHash }));
-  const link = window.location.href.split('#')[0] + '#setup=' + encoded;
-  navigator.clipboard.writeText(link).then(() => {
-    toast('Setup link copied! Open it on any device to auto-connect.');
-  }).catch(() => {
-    // Fallback: show it in a prompt
-    prompt('Copy this link and open on any device:', link);
-  });
+function getSetupLink(){
+  const cfg=getConfig();
+  if(!cfg?.url||!cfg?.key){toast('Connect first');return}
+  const encoded=btoa(JSON.stringify({url:cfg.url,key:cfg.key,passHash:cfg.passHash}));
+  const link=window.location.href.split('#')[0]+'#setup='+encoded;
+  navigator.clipboard.writeText(link).then(()=>toast('Setup link copied!')).catch(()=>prompt('Copy this link:',link));
 }
 
-function checkSetupLink() {
-  const hash = window.location.hash;
-  if (!hash.startsWith('#setup=')) return;
-  try {
-    const decoded = JSON.parse(atob(hash.slice(7)));
-    if (decoded.url && decoded.key) {
-      localStorage.setItem(CONFIG_KEY, JSON.stringify(decoded));
-      // Clean URL
-      history.replaceState(null, '', window.location.pathname);
-      toast('Auto-connected from setup link ✓');
-    }
-  } catch(e) {}
+function checkSetupLink(){
+  const hash=window.location.hash;
+  if(!hash.startsWith('#setup='))return;
+  try{
+    const d=JSON.parse(atob(hash.slice(7)));
+    if(d.url&&d.key){localStorage.setItem(CONFIG_KEY,JSON.stringify(d));history.replaceState(null,'',window.location.pathname);toast('Auto-connected ✓')}
+  }catch(e){}
 }
 
-async function checkStorageAccess() {
-  if (!sb) return;
-  try {
-    const testBlob = new Blob(['x'], { type: 'text/plain' });
-    const { error: writeErr } = await sb.storage
-      .from('covers')
-      .upload('_access_test.txt', testBlob, { upsert: true, contentType: 'text/plain' });
-    if (writeErr) {
-      console.warn('[Storage] Write test failed:', writeErr.message);
-      // Show storage policy modal
-      showStoragePolicyHelp(writeErr.message);
-    } else {
-      await sb.storage.from('covers').remove(['_access_test.txt']);
-      console.log('[Storage] ✓ Bucket write access confirmed');
-      document.getElementById('storage-policy-banner')?.remove();
-    }
-  } catch(e) { console.warn('[Storage] Check error:', e); }
-}
-
-function showStoragePolicyHelp(errMsg) {
-  // Remove existing banner if any
-  document.getElementById('storage-policy-banner')?.remove();
-
-  const sql = `-- Run this in Supabase SQL Editor to allow cover uploads:
-create policy "Allow public uploads"
-on storage.objects for insert
-to anon
-with check (bucket_id = 'covers');
-
-create policy "Allow public updates"
-on storage.objects for update
-to anon
-using (bucket_id = 'covers');
-
-create policy "Allow public reads"
-on storage.objects for select
-to anon
-using (bucket_id = 'covers');
-
-create policy "Allow public deletes"
-on storage.objects for delete
-to anon
-using (bucket_id = 'covers');`;
-
-  const banner = document.createElement('div');
-  banner.id = 'storage-policy-banner';
-  banner.style.cssText = 'position:fixed;bottom:4rem;left:50%;transform:translateX(-50%);width:min(500px,94vw);background:var(--surface);border:0.5px solid #e24b4a;border-radius:var(--radius-lg);padding:1.25rem 1.5rem;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.5)';
-  banner.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem">
-      <div>
-        <div style="font-size:13px;font-weight:500;color:#f09595;margin-bottom:.35rem">⚠ Storage upload blocked</div>
-        <div style="font-size:12px;color:var(--muted);line-height:1.5">Your Supabase Storage bucket needs permission policies. Run this SQL in your Supabase <strong style="color:var(--cream)">SQL Editor</strong>:</div>
-      </div>
-      <button onclick="document.getElementById('storage-policy-banner').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;flex-shrink:0">✕</button>
-    </div>
-    <pre id="policy-sql" style="background:var(--surface2);border:0.5px solid var(--border2);border-radius:8px;padding:.75rem;font-size:10px;font-family:var(--font-mono);color:var(--cream);margin:.75rem 0;white-space:pre-wrap;overflow-x:auto;line-height:1.5">${sql}</pre>
-    <button onclick="copySql()" style="background:var(--gold);color:#1a1510;border:none;border-radius:8px;padding:.45rem 1rem;font-size:12px;font-family:var(--font-mono);cursor:pointer;font-weight:500">Copy SQL</button>
-    <span style="font-size:11px;color:var(--muted);margin-left:.75rem">Then reconnect and try again</span>
-  `;
-  document.body.appendChild(banner);
-}
-
-function copySql() {
-  const sql = document.getElementById('policy-sql')?.textContent || '';
-  navigator.clipboard.writeText(sql).then(() => toast('SQL copied to clipboard ✓'));
-}
-
-async function forcePush() {
-  if (!syncEnabled || !sb) { toast('Not connected to Supabase yet'); return; }
-  document.getElementById('config-modal').style.display = 'none';
-  toast('Pushing all ' + collection.length + ' CDs to cloud…');
-  await pushToCloud();
-  toast('All ' + collection.length + ' CDs synced to cloud ✓');
-}
-
-async function pushToCloud() {
-  if (!syncEnabled || !sb) return;
-  setSyncStatus('syncing', 'syncing…');
-  try {
-    const cfg = getConfig();
-    const rowId = cfg?.passHash || 'default';
-
-    // Pull existing cloud data first so we don't overwrite good cover URLs
-    const { data: existing } = await sb.from(TABLE).select('data').eq('id', rowId).single();
-    let cloudCovers = {};
-    if (existing?.data) {
-      try {
-        const cloudItems = JSON.parse(existing.data);
-        cloudItems.forEach(c => { if (c.coverUrl) cloudCovers[c.id] = c.coverUrl; });
-      } catch(e) {}
-    }
-
-    // Build cloud-safe payload:
-    // - if local has a real http URL, always use it (user may have just set it)
-    // - strip base64 data: URLs (too large for Postgres)
-    // - if local is empty but cloud has a URL, keep the cloud one
-    const cloudSafe = collection.map(c => {
-      let url = c.coverUrl || '';
-      if (url.startsWith('data:')) url = ''; // strip base64
-      // If local has a valid http URL, use it — it's the most up to date
-      if (url.startsWith('http')) return { ...c, coverUrl: url };
-      // Otherwise fall back to whatever cloud has
-      if (!url && cloudCovers[c.id]) url = cloudCovers[c.id];
-      return { ...c, coverUrl: url };
+// ── CLOUD SYNC ──
+async function pushToCloud(){
+  if(!syncEnabled||!sb)return;
+  setSyncStatus('syncing','syncing…');
+  try{
+    const cfg=getConfig();const rowId=cfg?.passHash||'default';
+    const{data:existing}=await sb.from(TABLE).select('data').eq('id',rowId).single();
+    let cloudCovers={};
+    if(existing?.data){try{JSON.parse(existing.data).forEach(c=>{if(c.coverUrl)cloudCovers[c.id]=c.coverUrl})}catch(e){}}
+    const safe=collection.map(c=>{
+      let url=c.coverUrl||'';
+      if(url.startsWith('data:'))url='';
+      if(url.startsWith('http'))return{...c,coverUrl:url};
+      if(!url&&cloudCovers[c.id])url=cloudCovers[c.id];
+      return{...c,coverUrl:url};
     });
-
-    const { error } = await sb.from(TABLE).upsert(
-      { id: rowId, data: JSON.stringify(cloudSafe), updated_at: new Date().toISOString() },
-      { onConflict: 'id' }
-    );
-    if (error) throw new Error(error.message);
-    setSyncStatus('ok', 'synced');
-  } catch(e) { setSyncStatus('error', 'sync error'); console.error('Push error:', e); }
+    const{error}=await sb.from(TABLE).upsert({id:rowId,data:JSON.stringify(safe),updated_at:new Date().toISOString()},{onConflict:'id'});
+    if(error)throw new Error(error.message);
+    setSyncStatus('ok','synced');
+  }catch(e){setSyncStatus('error','error');console.error(e)}
 }
 
-async function pullFromCloud() {
-  if (!syncEnabled || !sb) return null;
-  try {
-    const cfg = getConfig();
-    const rowId = cfg?.passHash || 'default';
-    const { data, error } = await sb.from(TABLE).select('data').eq('id', rowId).single();
-    if (error) return null;
-    return data?.data ? JSON.parse(data.data) : null;
-  } catch(e) { return null; }
+async function pullFromCloud(){
+  if(!syncEnabled||!sb)return null;
+  try{
+    const cfg=getConfig();const rowId=cfg?.passHash||'default';
+    const{data,error}=await sb.from(TABLE).select('data').eq('id',rowId).single();
+    if(error)return null;
+    return data?.data?JSON.parse(data.data):null;
+  }catch(e){return null}
 }
 
-async function initCollection() {
-  // Always start with SEED as baseline so no CDs are ever missing
-  const seed = JSON.parse(JSON.stringify(SEED));
+async function forcePush(){
+  if(!syncEnabled||!sb){toast('Not connected');return}
+  document.getElementById('config-modal').style.display='none';
+  toast('Pushing '+collection.length+' CDs…');
+  await pushToCloud();toast('Synced ✓');
+}
 
-  // Load localStorage
-  const stored = localStorage.getItem(STORAGE_KEY);
-  let localData = null;
-  if (stored) { try { localData = JSON.parse(stored); } catch(e) {} }
+// ── COVER ART ──
+const coverCache={};
+function normalize(s){return(s||'').toLowerCase().replace(/[''`]/g,"'").replace(/[^a-z0-9 ']/g,' ').replace(/\s+/g,' ').trim()}
+function similarity(a,b){const wa=normalize(a).split(' ').filter(w=>w.length>1);const nb=normalize(b);if(!wa.length)return 0;return wa.filter(w=>nb.includes(w)).length/wa.length}
+function scoreMatch(r,artist,title){
+  const rA=r.artistName||'',rT=r.collectionName||'';
+  const aS=Math.max(similarity(artist,rA),similarity(rA,artist));
+  const tS=Math.max(similarity(title,rT),similarity(rT,title));
+  if(aS<0.4||tS<0.4)return 0;
+  return aS*0.5+tS*0.5;
+}
 
-  // Merge: keep all SEED entries, overlay with saved data (notes, covers, added items)
-  collection = mergeWithSeed(seed, localData);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(collection));
-  renderCollection(); buildShelfPills(); updateStats();
-
-  // Then attempt cloud sync in background
-  const connected = await initSupabase();
-  if (connected) {
-    const cloudData = await pullFromCloud();
-    if (cloudData && Array.isArray(cloudData) && cloudData.length > 0) {
-      // Merge cloud data with seed to ensure no CDs are lost
-      collection = mergeWithSeed(seed, cloudData);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(collection));
-      renderCollection(); buildShelfPills(); updateStats();
-      setSyncStatus('ok', 'synced');
-    } else {
-      // Nothing in cloud yet — push everything up
-      await pushToCloud();
+async function fetchCover(artist,title,id){
+  const key=`${artist}||${title}`;
+  if(coverCache[key]!==undefined)return coverCache[key];
+  coverCache[key]=null;
+  const cA=artist.replace(/\bfeaturing\b.*/i,'').replace(/[([].*/,'').trim();
+  const cT=title.replace(/[([].*/,'').trim();
+  const isVarious=/various/i.test(artist);
+  const queries=isVarious?[cT,`${cT} soundtrack`]:[`${cA} ${cT}`,`${cT} ${cA}`,cA];
+  let best=null,bestScore=0;
+  const stores=['us','gb','co','mx','es'];
+  for(const q of queries){
+    for(const store of stores){
+      try{
+        const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),6000);
+        const res=await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=album&limit=8&country=${store}`,{signal:ctrl.signal});
+        clearTimeout(t);if(!res.ok)continue;
+        const data=await res.json();
+        for(const r of(data.results||[])){const s=scoreMatch(r,cA,cT);if(s>bestScore){bestScore=s;best=r}}
+        if(bestScore>=0.7)break;
+      }catch(e){}
     }
+    if(bestScore>=0.7)break;
   }
+  if(best&&bestScore>=0.4&&best.artworkUrl100){
+    const url=best.artworkUrl100.replace('100x100bb','600x600bb').replace('/100x100/','/600x600/');
+    coverCache[key]=url;
+    const cd=collection.find(c=>c.id===id);
+    if(cd){cd.coverUrl=url;persistSave(true)}
+    return url;
+  }
+  coverCache[key]='';return null;
 }
 
-function mergeWithSeed(seed, savedData) {
-  if (!savedData || !Array.isArray(savedData) || savedData.length === 0) return seed;
-  // Build a map of saved items by id
-  const savedById = {};
-  const savedByKey = {}; // artist|title as fallback
-  savedData.forEach(c => {
-    savedById[c.id] = c;
-    savedByKey[`${c.artist}|${c.title}`] = c;
+async function refreshCover(id){
+  const cd=collection.find(c=>c.id===id);if(!cd)return;
+  const key=`${cd.artist}||${cd.title}`;delete coverCache[key];cd.coverUrl='';persistSave(true);
+  const url=await fetchCover(cd.artist,cd.title,id);
+  if(url){renderDetailView(collection.find(c=>c.id===id));updateCardCover(id,url);toast('Cover updated')}
+  else toast('No cover found');
+}
+
+// ── STORAGE ──
+let collection=[],viewMode='grid',activeShelf='all',activeId=null,editMode=false,editSnap=null,saveTimer=null;
+
+function mergeWithSeed(seed,saved){
+  if(!saved||!Array.isArray(saved)||!saved.length)return seed;
+  const byId={},byKey={};
+  saved.forEach(c=>{byId[c.id]=c;byKey[`${c.artist}|${c.title}`]=c});
+  const merged=seed.map(s=>{
+    const sv=byId[s.id]||byKey[`${s.artist}|${s.title}`];
+    if(sv){
+      const best=(sv.coverUrl&&!sv.coverUrl.startsWith('data:'))?sv.coverUrl:(s.coverUrl||'');
+      return{...s,...sv,id:s.id,coverUrl:best};
+    }return s;
   });
-  // Start with seed, overlay saved data (notes, covers, etc.)
-  const merged = seed.map(s => {
-    const saved = savedById[s.id] || savedByKey[`${s.artist}|${s.title}`];
-    if (saved) {
-      // Keep best available coverUrl — prefer http URLs over empty strings
-      const bestCover = (saved.coverUrl && !saved.coverUrl.startsWith('data:'))
-        ? saved.coverUrl
-        : (s.coverUrl || '');
-      return { ...s, ...saved, id: s.id, coverUrl: bestCover };
-    }
-    return s;
-  });
-  // Add any manually-added items (in savedData but not in seed)
-  const seedIds = new Set(seed.map(s => s.id));
-  const seedKeys = new Set(seed.map(s => `${s.artist}|${s.title}`));
-  savedData.forEach(c => {
-    if (!seedIds.has(c.id) && !seedKeys.has(`${c.artist}|${c.title}`)) {
-      merged.unshift(c); // add manually-added CDs at the top
-    }
-  });
+  const seedIds=new Set(seed.map(s=>s.id)),seedKeys=new Set(seed.map(s=>`${s.artist}|${s.title}`));
+  saved.forEach(c=>{if(!seedIds.has(c.id)&&!seedKeys.has(`${c.artist}|${c.title}`))merged.unshift(c)});
   return merged;
 }
 
-function persistSave(skipCloud = false) {
+async function initCollection(){
+  const seed=JSON.parse(JSON.stringify(SEED));
+  const stored=localStorage.getItem(STORAGE_KEY);
+  let local=null;
+  if(stored){try{local=JSON.parse(stored)}catch(e){}}
+  collection=mergeWithSeed(seed,local);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(collection));
+  renderCollection();buildShelfPills();updateStats();renderSlider();
+  const connected=await initSupabase();
+  if(connected){
+    const cloud=await pullFromCloud();
+    if(cloud&&Array.isArray(cloud)&&cloud.length){
+      collection=mergeWithSeed(seed,cloud);
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(collection));
+      renderCollection();buildShelfPills();updateStats();renderSlider();
+      setSyncStatus('ok','synced');
+    }else{await pushToCloud()}
+  }
+}
+
+function persistSave(skipCloud=false){
   updateStats();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(collection));
-  if (syncEnabled && !skipCloud) {
-    clearTimeout(syncTimer);
-    syncTimer = setTimeout(() => pushToCloud(), 1500);
-  }
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(collection));
+  if(syncEnabled&&!skipCloud){clearTimeout(syncTimer);syncTimer=setTimeout(()=>pushToCloud(),1500)}
 }
 
-
-function updateStats() {
-  const totalDiscs = collection.reduce((sum, c) => sum + (c.copies || 1), 0);
-  document.getElementById('stat-count').textContent = totalDiscs;
-  document.getElementById('stat-artists').textContent = new Set(collection.map(c => c.artist)).size;
+function updateStats(){
+  const total=collection.reduce((s,c)=>s+(c.copies||1),0);
+  document.getElementById('stat-count').textContent=total;
+  document.getElementById('stat-artists').textContent=new Set(collection.map(c=>c.artist)).size;
 }
 
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2200);
-}
-
-// ── MUSICBRAINZ SEARCH ──
 // ── SEARCH ──
-// Tries iTunes across multiple country stores — covers international catalog better
-async function mbSearch() {
-  const q = document.getElementById('mb-query').value.trim();
-  if (!q) return;
-  const btn = document.getElementById('mb-search-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Searching…';
+let searchResults=[],selectedResult=null;
 
-  // Try these country endpoints in order — different stores have different catalogs
-  const stores = ['us', 'gb', 'co', 'mx', 'es'];
-  let results = [];
-
-  for (const store of stores) {
-    try {
-      const url = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=album&limit=25&country=${store}`;
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeout);
-      if (!res.ok) continue;
-      const data = await res.json();
-      results = results.concat(data.results || []);
-      if (results.length >= 10) break; // enough results, stop trying stores
-    } catch(e) {
-      if (e.name === 'AbortError') continue; // timeout, try next store
-      console.warn('iTunes store', store, 'failed:', e.message);
-    }
+async function doSearch(){
+  const q=document.getElementById('q').value.trim();if(!q)return;
+  const btn=document.getElementById('search-btn');
+  btn.innerHTML='<span class="spinner"></span>Searching…';btn.disabled=true;
+  const stores=['us','gb','co','mx','es'];let results=[];
+  for(const store of stores){
+    try{
+      const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),8000);
+      const res=await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=album&limit=25&country=${store}`,{signal:ctrl.signal});
+      clearTimeout(t);if(!res.ok)continue;
+      const data=await res.json();results=results.concat(data.results||[]);
+      if(results.length>=10)break;
+    }catch(e){}
   }
-
-  if (!results.length) {
-    toast('No results found. Try different keywords.');
-    btn.disabled = false;
-    btn.textContent = 'Search';
-    return;
-  }
-
-  // Deduplicate by collectionId, keeping best artwork
-  const seen = new Map();
-  results.forEach(r => {
-    const id = r.collectionId;
-    if (!seen.has(id) || (r.artworkUrl100 && !seen.get(id).artworkUrl100)) {
-      seen.set(id, r);
-    }
-  });
-
-  searchResults = [...seen.values()].map(r => ({
-    _type: 'itunes',
-    id: r.collectionId,
-    title: r.collectionName || r.collectionCensoredName || '',
-    artist: r.artistName || 'Unknown',
-    year: r.releaseDate ? r.releaseDate.slice(0,4) : '',
-    thumb: (r.artworkUrl100||'').replace('100x100bb','100x100bb'),
-    cover: (r.artworkUrl100||'').replace('100x100bb','600x600bb').replace('/100x100/','/600x600/'),
-    genre: r.primaryGenreName || '',
-    label: '',
-    country: r.country || '',
+  if(!results.length){toast('No results found');btn.innerHTML='Search';btn.disabled=false;return}
+  const seen=new Map();
+  results.forEach(r=>{const id=r.collectionId;if(!seen.has(id)||(r.artworkUrl100&&!seen.get(id).artworkUrl100))seen.set(id,r)});
+  searchResults=[...seen.values()].map(r=>({
+    id:r.collectionId,title:r.collectionName||r.collectionCensoredName||'',
+    artist:r.artistName||'Unknown',year:r.releaseDate?r.releaseDate.slice(0,4):'',
+    thumb:(r.artworkUrl100||'').replace('100x100bb','100x100bb'),
+    cover:(r.artworkUrl100||'').replace('100x100bb','600x600bb').replace('/100x100/','/600x600/'),
+    genre:r.primaryGenreName||'',country:r.country||'',itunesId:r.collectionId,
   }));
-
-  renderResults();
-  btn.disabled = false;
-  btn.textContent = 'Search';
+  renderResults();btn.innerHTML='Search';btn.disabled=false;
 }
 
-document.getElementById('mb-query').addEventListener('keydown', e => { if (e.key==='Enter') mbSearch(); });
+document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch()});
 
-function renderResults() {
-  const list = document.getElementById('results-list');
-  const section = document.getElementById('results-section');
-  if (!searchResults.length) { toast('No results found'); return; }
-  section.style.display = 'block';
-  selectedResult = null;
-  document.getElementById('add-selected-btn').disabled = true;
-  list.innerHTML = '';
-  searchResults.forEach((r, i) => {
-    const div = document.createElement('div');
-    div.className = 'result-item';
-    const thumb = r.thumb
-      ? `<img class="result-thumb" src="${escAttr(r.thumb)}" onerror="this.outerHTML='<div class=result-thumb-ph>💿</div>'" />`
-      : `<div class="result-thumb-ph">💿</div>`;
-    div.innerHTML = `${thumb}
-      <div class="result-info">
-        <div class="result-title">${escHtml(r.title)}</div>
-        <div class="result-artist">${escHtml(r.artist)}</div>
-      </div>
-      <div class="result-year">${escHtml(r.year)}</div>`;
-    div.addEventListener('click', () => selectResult(i, div));
+function renderResults(){
+  const list=document.getElementById('results-list');
+  document.getElementById('results-wrap').style.display='block';
+  selectedResult=null;document.getElementById('btn-add-selected').disabled=true;
+  list.innerHTML='';
+  searchResults.forEach((r,i)=>{
+    const div=document.createElement('div');div.className='result-item';
+    const thumb=r.thumb?`<img class="result-thumb" src="${escAttr(r.thumb)}" onerror="this.outerHTML='<div class=result-thumb-ph>💿</div>'" />`:`<div class="result-thumb-ph">💿</div>`;
+    div.innerHTML=`${thumb}<div class="result-info"><div class="result-title">${escHtml(r.title)}</div><div class="result-artist">${escHtml(r.artist)}</div></div><div class="result-year">${escHtml(r.year)}</div>`;
+    div.addEventListener('click',()=>{document.querySelectorAll('.result-item').forEach(e=>e.classList.remove('selected'));div.classList.add('selected');selectedResult=r;document.getElementById('btn-add-selected').disabled=false});
     list.appendChild(div);
   });
 }
 
-function selectResult(i, el) {
-  document.querySelectorAll('.result-item').forEach(e => e.classList.remove('selected'));
-  el.classList.add('selected');
-  selectedResult = searchResults[i];
-  document.getElementById('add-selected-btn').disabled = false;
-}
-
-async function addSelected() {
-  if (!selectedResult) return;
-  const r = selectedResult;
-  const btn = document.getElementById('add-selected-btn');
-  btn.disabled = true; btn.textContent = 'Adding…';
-
-  // Fetch tracklist from iTunes lookup
-  let tracks = [];
-  try {
-    const res = await fetch(`https://itunes.apple.com/lookup?id=${r.id}&entity=song&limit=50`);
-    const data = await res.json();
-    const songs = (data.results || []).filter(x => x.wrapperType === 'track');
-    tracks = songs.map(t => ({
-      num: String(t.trackNumber || ''),
-      title: t.trackName || '',
-      duration: t.trackTimeMillis ? formatMs(t.trackTimeMillis) : ''
-    }));
-  } catch(e) {}
-
-  const coverUrl = r.cover || r.thumb || '';
-
-  const entry = {
-    id: Date.now(),
-    mbid: null,
-    discogsId: '',
-    itunesId: String(r.id),
-    title: r.title,
-    artist: r.artist,
-    year: r.year,
-    label: r.label || '',
-    genre: r.genre || '',
-    country: r.country || '',
-    catNo: '',
-    shelf: '',
-    coverUrl,
-    tracks,
-    notes: '',
-    addedAt: Date.now()
-  };
-  collection.unshift(entry);
-  persistSave();
-  renderCollection();
-  buildShelfPills();
+async function addSelected(){
+  if(!selectedResult)return;const r=selectedResult;
+  const btn=document.getElementById('btn-add-selected');btn.disabled=true;btn.textContent='Adding…';
+  let tracks=[];
+  try{
+    const res=await fetch(`https://itunes.apple.com/lookup?id=${r.id}&entity=song&limit=50`);
+    const data=await res.json();
+    tracks=(data.results||[]).filter(x=>x.wrapperType==='track').map(t=>({num:String(t.trackNumber||''),title:t.trackName||'',duration:t.trackTimeMillis?formatMs(t.trackTimeMillis):''}));
+  }catch(e){}
+  collection.unshift({id:Date.now(),mbid:null,discogsId:'',itunesId:String(r.id),title:r.title,artist:r.artist,year:r.year,label:'',genre:r.genre,country:r.country,catNo:'',shelf:'',copies:1,coverUrl:r.cover||'',tracks,notes:'',addedAt:Date.now()});
+  persistSave();renderCollection();buildShelfPills();renderSlider();
   toast(`Added: ${r.title}`);
-  btn.disabled = false; btn.textContent = '+ Add selected to collection';
-  document.querySelectorAll('.result-item').forEach(e => e.classList.remove('selected'));
-  selectedResult = null;
-  document.getElementById('add-selected-btn').disabled = true;
+  btn.textContent='+ Add to collection';btn.disabled=false;
+  document.querySelectorAll('.result-item').forEach(e=>e.classList.remove('selected'));selectedResult=null;btn.disabled=true;
 }
 
-function formatMs(ms) { const s = Math.round(ms/1000); return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
+function addManual(){
+  const artist=document.getElementById('m-artist').value.trim();
+  const title=document.getElementById('m-title').value.trim();
+  if(!artist||!title){toast('Artist and title required');return}
+  collection.unshift({id:Date.now(),mbid:null,discogsId:'',title,artist,year:document.getElementById('m-year').value.trim(),genre:document.getElementById('m-genre').value.trim(),label:document.getElementById('m-label').value.trim(),shelf:document.getElementById('m-shelf').value.trim(),copies:Math.max(1,parseInt(document.getElementById('m-copies').value)||1),country:'',catNo:'',coverUrl:document.getElementById('m-cover').value.trim(),tracks:[],notes:document.getElementById('m-notes').value.trim(),addedAt:Date.now()});
+  persistSave();renderCollection();buildShelfPills();toast(`Added: ${title}`);
+  ['m-artist','m-title','m-year','m-genre','m-label','m-shelf','m-copies','m-cover','m-notes'].forEach(id=>document.getElementById(id).value='');
+}
 
-function addManual() {
-  const artist = document.getElementById('m-artist').value.trim();
-  const title  = document.getElementById('m-title').value.trim();
-  if (!artist || !title) { toast('Artist and title required'); return; }
-  collection.unshift({
-    id:Date.now(),mbid:null,discogsId:'',title,artist,
-    year:document.getElementById('m-year').value.trim(),
-    genre:document.getElementById('m-genre').value.trim(),
-    label:document.getElementById('m-label').value.trim(),
-    shelf:document.getElementById('m-shelf').value.trim(),
-    copies:Math.max(1, parseInt(document.getElementById('m-copies').value)||1),
-    country:'',catNo:'',
-    coverUrl:document.getElementById('m-cover').value.trim(),
-    tracks:[],notes:document.getElementById('m-notes').value.trim(),
-    addedAt:Date.now()
+
+// ── COLOR EXTRACTION ──
+function getAvgColor(img){
+  try{
+    const c=document.createElement('canvas'),ctx=c.getContext('2d');
+    c.width=img.naturalWidth||80;c.height=img.naturalHeight||80;
+    ctx.drawImage(img,0,0);
+    const d=ctx.getImageData(0,0,c.width,c.height).data;
+    let r=0,g=0,b=0,n=0;
+    for(let i=0;i<d.length;i+=32){r+=d[i];g+=d[i+1];b+=d[i+2];n++}
+    if(!n)return null;
+    return{r:Math.round(r/n),g:Math.round(g/n),b:Math.round(b/n)};
+  }catch(e){return null}
+}
+
+function applyCardColor(card,img){
+  try{
+    const col=getAvgColor(img);
+    if(!col)return;
+    const{r,g,b}=col;
+    card.style.boxShadow=`0 20px 50px rgba(${r},${g},${b},0.18),0 4px 12px rgba(0,0,0,0.06)`;
+  }catch(e){}
+}
+
+function applyDetailColor(img){
+  try{
+    const col=getAvgColor(img);
+    if(!col)return;
+    const{r,g,b}=col;
+    const hero=img.closest('.detail-cover-hero');
+    if(!hero)return;
+    const grad=hero.querySelector('.detail-hero-grad');
+    if(grad)grad.style.background=`linear-gradient(transparent,rgb(${r},${g},${b}) 70%,white)`;
+    hero.style.background=`linear-gradient(to bottom, rgba(${r},${g},${b},0.25), rgba(${r},${g},${b},0.1))`;
+  }catch(e){}
+}
+
+// ── RECENT SLIDER ──
+function renderSlider(){
+  const container=document.getElementById('recent-slider');
+  if(!container)return;
+  const recent=[...collection].sort((a,b)=>b.addedAt-a.addedAt).slice(0,14);
+  container.innerHTML='';
+  recent.forEach(item=>{
+    const el=document.createElement('div');
+    el.className='recent-item';
+    el.onclick=()=>openDetail(item.id);
+    if(item.coverUrl&&!item.coverUrl.startsWith('data:')){
+      el.innerHTML=`<img src="${escAttr(item.coverUrl)}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=recent-item-ph>💿</div>'"/>
+        <div class="recent-item-label">
+          <div class="recent-item-title">${escHtml(item.title)}</div>
+          <div class="recent-item-artist">${escHtml(item.artist)}</div>
+        </div>`;
+    }else{
+      el.innerHTML=`<div class="recent-item-ph">💿</div>
+        <div class="recent-item-label">
+          <div class="recent-item-title">${escHtml(item.title)}</div>
+          <div class="recent-item-artist">${escHtml(item.artist)}</div>
+        </div>`;
+      if(!item.coverUrl||item.coverUrl===''){
+        fetchCover(item.artist,item.title,item.id).then(url=>{
+          if(url){
+            el.innerHTML=`<img src="${escAttr(url)}" loading="lazy"/>
+              <div class="recent-item-label">
+                <div class="recent-item-title">${escHtml(item.title)}</div>
+                <div class="recent-item-artist">${escHtml(item.artist)}</div>
+              </div>`;
+          }
+        });
+      }
+    }
+    container.appendChild(el);
   });
-  persistSave();
-  renderCollection();
-  buildShelfPills();
-  toast(`Added: ${title}`);
-  ['m-artist','m-title','m-year','m-genre','m-label','m-shelf','m-copies','m-cover','m-notes'].forEach(id => document.getElementById(id).value='');
 }
-
-// ── SHELF PILLS ──
-function buildShelfPills() {
-  const shelves = ['all',...new Set(collection.map(c=>c.shelf).filter(Boolean).sort())];
-  document.getElementById('shelf-pills').innerHTML = shelves.map(s =>
-    `<button class="pill${activeShelf===s?' active':''}" onclick="setShelf('${escAttr(s)}')">${s==='all'?'All':escHtml(s)}</button>`
-  ).join('');
-}
-
-function setShelf(s) { activeShelf=s; buildShelfPills(); renderCollection(); }
 
 // ── RENDER COLLECTION ──
-function renderCollection() {
-  const container = document.getElementById('collection-container');
-  const filter = document.getElementById('filter-input').value.toLowerCase();
-  const sort   = document.getElementById('sort-select').value;
+function buildShelfPills(){
+  const shelves=['all',...new Set(collection.map(c=>c.shelf).filter(Boolean).sort())];
+  document.getElementById('shelf-row').innerHTML=shelves.map(s=>`<button class="shelf-pill${activeShelf===s?' active':''}" onclick="setShelf('${escAttr(s)}')">${s==='all'?'All':escHtml(s)}</button>`).join('');
+}
+function setShelf(s){activeShelf=s;buildShelfPills();renderCollection()}
 
-  let items = collection.filter(c => {
-    const matchShelf  = activeShelf==='all' || c.shelf===activeShelf;
-    const matchFilter = !filter || c.title.toLowerCase().includes(filter) || c.artist.toLowerCase().includes(filter) || (c.year||'').includes(filter);
-    return matchShelf && matchFilter;
+function renderCollection(){
+  const wrap=document.getElementById('collection-wrap');
+  const filter=document.getElementById('filter-q').value.toLowerCase();
+  const sort=document.getElementById('sort-sel').value;
+  let items=collection.filter(c=>{
+    const ms=activeShelf==='all'||c.shelf===activeShelf;
+    const mf=!filter||c.title.toLowerCase().includes(filter)||c.artist.toLowerCase().includes(filter)||(c.year||'').includes(filter);
+    return ms&&mf;
   });
-
-  if (sort==='title')  items.sort((a,b)=>a.title.localeCompare(b.title));
-  else if(sort==='artist') items.sort((a,b)=>a.artist.localeCompare(b.artist));
-  else if(sort==='year') items.sort((a,b)=>(b.year||'0')-(a.year||'0'));
+  if(sort==='title')items.sort((a,b)=>a.title.localeCompare(b.title));
+  else if(sort==='artist')items.sort((a,b)=>a.artist.localeCompare(b.artist));
+  else if(sort==='year')items.sort((a,b)=>(b.year||'0')-(a.year||'0'));
   else items.sort((a,b)=>b.addedAt-a.addedAt);
-
-  if (!items.length) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-icon">💿</div><p>${collection.length?'No matches in your collection':'Search for an album or add one manually'}</p></div>`;
-    return;
+  if(!items.length){wrap.innerHTML=`<div class="empty-state"><div class="empty-icon">💿</div><p>${collection.length?'No matches':'Search for an album or add one manually'}</p></div>`;return}
+  if(viewMode==='grid'){
+    wrap.innerHTML=`<div class="cd-grid">${items.map(cdCard).join('')}</div>`;
+  }else{
+    wrap.innerHTML=`<div class="list-header-row"><span></span><span>Album</span><span>Artist</span><span>Year</span><span>Genre</span><span></span></div><div class="cd-list">${items.map(listRow).join('')}</div>`;
   }
-
-  if (viewMode==='grid') {
-    container.innerHTML = `<div class="collection-grid">${items.map(cdCard).join('')}</div>`;
-  } else {
-    container.innerHTML = `<div class="list-header"><span></span><span>Album</span><span>Artist</span><span>Year</span><span>Genre</span><span></span></div><div class="collection-list">${items.map(listRow).join('')}</div>`;
-  }
-
-  // Load covers for items without a valid http URL
-  // Stagger requests to avoid rate limiting iTunes API
-  let delay = 0;
-  items.forEach(c => {
-    const needsCover = !c.coverUrl || c.coverUrl.startsWith('data:');
-    if (needsCover) {
-      setTimeout(() => {
-        fetchCover(c.artist, c.title, c.id).then(url => {
-          if (url) updateCardCover(c.id, url);
-        });
-      }, delay);
-      delay += 120; // stagger by 120ms per item
+  let delay=0;
+  items.forEach(c=>{
+    if(!c.coverUrl||c.coverUrl.startsWith('data:')){
+      setTimeout(()=>fetchCover(c.artist,c.title,c.id).then(url=>{if(url)updateCardCover(c.id,url)}),delay);
+      delay+=100;
     }
   });
 }
 
-function updateCardCover(id, url) {
-  // Grid
-  const ph = document.getElementById(`ph-${id}`);
-  if (ph) {
-    const img = document.createElement('img');
-    img.className = 'cd-cover';
-    img.src = url;
-    img.loading = 'lazy';
-    img.onerror = () => {};
-    ph.replaceWith(img);
-  }
-  // List
-  const lph = document.getElementById(`lph-${id}`);
-  if (lph) {
-    const img = document.createElement('img');
-    img.className = 'list-cover';
-    img.src = url;
-    img.onerror = () => {};
-    lph.replaceWith(img);
-  }
+function cdCard(c){
+  const cover=c.coverUrl&&!c.coverUrl.startsWith('data:')?`<img class="cd-cover" src="${escAttr(c.coverUrl)}" loading="lazy" onerror="this.style.opacity=0" onload="applyCardColor(this.closest('.cd-card'),this)" />`:(c.coverUrl?`<img class="cd-cover" src="${escAttr(c.coverUrl)}" loading="lazy" onload="applyCardColor(this.closest('.cd-card'),this)" />`:`<div class="cd-cover-ph loading" id="ph-${c.id}">💿</div>`);
+  const badge=(c.copies>1)?`<div class="cd-copies-badge">${c.copies}×</div>`:'';
+  return`<div class="cd-card" onclick="openDetail(${c.id})"><div class="cd-cover-wrap">${cover}${badge}</div><div class="cd-info"><div class="cd-title">${escHtml(c.title)}</div><div class="cd-artist">${escHtml(c.artist)}</div>${c.year?`<div class="cd-year">${c.year}</div>`:''}</div><button class="cd-del" onclick="event.stopPropagation();delDisc(${c.id})">✕</button></div>`;
 }
 
-function cdCard(c) {
-  const cover = c.coverUrl
-    ? `<img class="cd-cover" src="${escAttr(c.coverUrl)}" loading="lazy" onerror="this.style.opacity=0" />`
-    : `<div class="cd-cover-ph loading" id="ph-${c.id}">💿</div>`;
-  const copiesBadge = (c.copies > 1) ? `<div class="cd-copies">${c.copies}×</div>` : '';
-  return `<div class="cd-card" onclick="openDetail(${c.id})">
-    <div style="position:relative">${cover}${copiesBadge}</div>
-    <div class="cd-info">
-      <div class="cd-title">${escHtml(c.title)}</div>
-      <div class="cd-artist">${escHtml(c.artist)}</div>
-      ${c.year?`<div class="cd-year">${c.year}</div>`:''}
-    </div>
-    <button class="cd-delete" onclick="event.stopPropagation();deleteDisc(${c.id})">✕</button>
-  </div>`;
+function listRow(c){
+  const cover=c.coverUrl?`<img class="list-thumb" src="${escAttr(c.coverUrl)}" onerror="this.style.opacity=0" />`:`<div class="list-thumb-ph" id="lph-${c.id}">💿</div>`;
+  return`<div class="list-row" onclick="openDetail(${c.id})">${cover}<div><div class="list-title">${escHtml(c.title)}</div><div class="list-artist">${escHtml(c.artist)}</div></div><div class="list-artist">${escHtml(c.artist)}</div><div class="list-year">${c.year||'—'}</div><div class="list-genre">${escHtml((c.genre||'').split(',')[0]||'—')}</div><button class="list-del-btn" onclick="event.stopPropagation();delDisc(${c.id})">✕</button></div>`;
 }
 
-function listRow(c) {
-  const cover = c.coverUrl
-    ? `<img class="list-cover" src="${escAttr(c.coverUrl)}" onerror="this.style.opacity=0" />`
-    : `<div class="list-cover-ph" id="lph-${c.id}">💿</div>`;
-  return `<div class="list-row" onclick="openDetail(${c.id})">
-    ${cover}
-    <div class="list-title">${escHtml(c.title)}</div>
-    <div class="list-artist">${escHtml(c.artist)}</div>
-    <div class="list-year">${c.year||'—'}</div>
-    <div class="list-genre">${escHtml((c.genre||'').split(',')[0]||'—')}</div>
-    <button class="list-del" onclick="event.stopPropagation();deleteDisc(${c.id})">✕</button>
-  </div>`;
+function updateCardCover(id,url){
+  const ph=document.getElementById(`ph-${id}`);
+  if(ph){const img=document.createElement('img');img.className='cd-cover';img.src=url;img.loading='lazy';img.onerror=()=>{};img.onload=()=>{const card=img.closest('.cd-card');if(card)applyCardColor(card,img)};ph.replaceWith(img)}
+  const lph=document.getElementById(`lph-${id}`);
+  if(lph){const img=document.createElement('img');img.className='list-thumb';img.src=url;img.onerror=()=>{};lph.replaceWith(img)}
 }
 
-function deleteDisc(id) {
-  collection = collection.filter(c=>c.id!==id);
-  persistSave(); renderCollection(); buildShelfPills(); toast('Removed');
-}
-
-function setView(v) {
-  viewMode=v;
-  document.getElementById('btn-grid').classList.toggle('active',v==='grid');
-  document.getElementById('btn-list').classList.toggle('active',v==='list');
-  renderCollection();
-}
+function delDisc(id){collection=collection.filter(c=>c.id!==id);persistSave();renderCollection();buildShelfPills();toast('Removed')}
+function setView(v){viewMode=v;document.getElementById('btn-grid').classList.toggle('active',v==='grid');document.getElementById('btn-list').classList.toggle('active',v==='list');renderCollection()}
 
 // ── DETAIL ──
-// ── DETAIL VIEW ──
-let editMode = false;
-let editSnapshot = null; // for cancel
-
-function buildSearchLinks(c) {
-  const q = encodeURIComponent(`${c.artist} ${c.title} CD`);
-  const qCover = encodeURIComponent(`${c.artist} ${c.title} album cover`);
-  const qDiscogs = encodeURIComponent(`${c.artist} ${c.title}`);
-
-  const links = [
-    {
-      label: 'Amazon',
-      icon: '🛒',
-      url: `https://www.amazon.com/s?k=${q}&i=popular`
-    },
-    {
-      label: 'Discogs',
-      icon: '💿',
-      url: `https://www.discogs.com/search/?q=${qDiscogs}&type=release&format=CD`
-    },
-    {
-      label: 'Google Images',
-      icon: '🖼',
-      url: `https://www.google.com/search?q=${qCover}&tbm=isch`
-    },
-    {
-      label: 'eBay',
-      icon: '🏷',
-      url: `https://www.ebay.com/sch/i.html?_nkw=${q}&LH_ItemCondition=4`
-    },
-    {
-      label: 'MusicBrainz',
-      icon: '🎵',
-      url: `https://musicbrainz.org/search?query=${qDiscogs}&type=release`
-    },
+function buildSearchLinks(c){
+  const q=encodeURIComponent(`${c.artist} ${c.title} CD`);
+  const qI=encodeURIComponent(`${c.artist} ${c.title} album cover`);
+  const qD=encodeURIComponent(`${c.artist} ${c.title}`);
+  const links=[
+    {label:'Amazon',icon:'🛒',url:`https://www.amazon.com/s?k=${q}&i=popular`},
+    {label:'Discogs',icon:'💿',url:`https://www.discogs.com/search/?q=${qD}&type=release&format=CD`},
+    {label:'Google Images',icon:'🖼',url:`https://www.google.com/search?q=${qI}&tbm=isch`},
+    {label:'eBay',icon:'🏷',url:`https://www.ebay.com/sch/i.html?_nkw=${q}`},
+    {label:'MusicBrainz',icon:'🎵',url:`https://musicbrainz.org/search?query=${qD}&type=release`},
   ];
-
-  const el = document.getElementById('d-search-links');
-  if (!el) return;
-  el.innerHTML = links.map(l =>
-    `<a class="search-link" href="${l.url}" target="_blank" rel="noopener noreferrer">
-      <span class="sl-icon">${l.icon}</span>${l.label}
-    </a>`
-  ).join('');
+  document.getElementById('d-search-links').innerHTML=links.map(l=>`<a class="search-link" href="${l.url}" target="_blank" rel="noopener">${l.icon} ${l.label}</a>`).join('');
 }
 
-function renderDetailView(c) {
+function renderDetailView(c){
+  if(!c)return;
   // Cover
-  const wrap = document.getElementById('d-cover-wrap');
-  if (c.coverUrl) {
-    // Keep file input overlay in edit mode
-    wrap.innerHTML = `<img src="${escAttr(c.coverUrl)}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.opacity=0" /><div class="detail-cover-gradient"></div><div class="cover-upload-zone" style="position:absolute;inset:0;border-radius:var(--radius-lg) var(--radius-lg) 0 0" id="d-cover-zone"><input type="file" accept="image/*" onchange="handleCoverUpload(event)" /><div class="cover-upload-overlay"><span style="font-size:1.8rem">📷</span><span>Change cover</span></div></div>`;
-  } else {
-    wrap.innerHTML = `<div class="detail-cover-ph" style="position:relative"><div class="cover-upload-zone" style="position:absolute;inset:0;border-radius:var(--radius-lg) var(--radius-lg) 0 0"><input type="file" accept="image/*" onchange="handleCoverUpload(event)" /><div class="cover-upload-overlay"><span style="font-size:1.8rem">📷</span><span>Upload cover</span></div></div>💿</div><div class="detail-cover-gradient"></div>`;
-    fetchCover(c.artist, c.title, c.id).then(url => {
-      if (url && activeDetailId===c.id) renderDetailView(collection.find(x=>x.id===c.id));
-    });
+  const hero=document.getElementById('d-hero');
+  if(c.coverUrl){
+    hero.innerHTML=`<img src="${escAttr(c.coverUrl)}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.opacity=0" onload="applyDetailColor(this)" /><div class="detail-hero-grad"></div><div class="cover-upload-zone"><input type="file" accept="image/*" onchange="handleCoverUpload(event)" /><div class="cover-upload-hover"><span style="font-size:1.5rem">📷</span><span>Change cover</span></div></div>`;
+  }else{
+    hero.innerHTML=`<div class="detail-cover-hero-ph">💿</div><div class="detail-hero-grad"></div><div class="cover-upload-zone"><input type="file" accept="image/*" onchange="handleCoverUpload(event)" /><div class="cover-upload-hover"><span style="font-size:1.5rem">📷</span><span>Upload cover</span></div></div>`;
+    fetchCover(c.artist,c.title,c.id).then(url=>{if(url&&activeId===c.id)renderDetailView(collection.find(x=>x.id===c.id))});
   }
-
-  // View fields
-  document.getElementById('d-title').textContent  = c.title;
-  document.getElementById('d-artist').textContent = c.artist;
+  document.getElementById('d-title').textContent=c.title;
+  document.getElementById('d-artist').textContent=c.artist;
   buildSearchLinks(c);
-
-  const metaItems = [
-    c.year    && {k:'Year',   v:c.year},
-    c.label   && {k:'Label',  v:c.label},
-    c.genre   && {k:'Genre',  v:c.genre},
-    c.country && {k:'Country',v:c.country},
-    c.shelf   && {k:'Shelf',  v:c.shelf},
-    c.catNo   && {k:'Cat #',  v:c.catNo},
-    c.tracks?.filter(t=>t.num).length && {k:'Tracks', v:c.tracks.filter(t=>t.num).length},
-    (c.copies > 1) && {k:'Copies', v:c.copies}
-  ].filter(Boolean);
-  document.getElementById('d-meta').innerHTML = metaItems.map(m=>
-    `<div><div class="meta-key">${m.k}</div><div class="meta-val">${escHtml(String(m.v))}</div></div>`
-  ).join('');
-
-  const realTracks = (c.tracks||[]).filter(t=>t.title);
-  document.getElementById('d-tracks').innerHTML = realTracks.length
-    ? `<div class="section-label" style="margin-bottom:.5rem">Tracklist</div>`+
-      realTracks.map(t=>`<div class="track-row"><span class="track-num">${t.num}</span><span class="track-title">${escHtml(t.title)}</span>${t.duration?`<span class="track-dur">${t.duration}</span>`:''}</div>`).join('')
-    : '';
-
-  document.getElementById('d-notes-view').textContent = c.notes || '';
-
-  const dLink = document.getElementById('d-discogs');
-  if (c.discogsId) { dLink.href=`https://www.discogs.com/release/${c.discogsId}`; dLink.style.display='inline-flex'; }
-  else dLink.style.display='none';
+  const meta=[c.year&&{k:'Year',v:c.year},c.label&&{k:'Label',v:c.label.split(',')[0].trim()},c.genre&&{k:'Genre',v:c.genre.split(',')[0].trim()},c.country&&{k:'Country',v:c.country},c.shelf&&{k:'Shelf',v:c.shelf},c.catNo&&{k:'Cat #',v:c.catNo},(c.copies>1)&&{k:'Copies',v:c.copies},(c.tracks||[]).filter(t=>t.num).length&&{k:'Tracks',v:(c.tracks||[]).filter(t=>t.num).length}].filter(Boolean);
+  document.getElementById('d-meta').innerHTML=meta.map(m=>`<div class="meta-item"><div class="mk">${m.k}</div><div class="mv">${escHtml(String(m.v))}</div></div>`).join('');
+  document.getElementById('d-notes-view').textContent=c.notes||'';
+  const realTracks=(c.tracks||[]).filter(t=>t.title);
+  document.getElementById('d-tracklist').innerHTML=realTracks.length?`<div class="tracklist-label">Tracklist</div>`+realTracks.map(t=>`<div class="track-row"><span class="track-num">${t.num}</span><span class="track-title">${escHtml(t.title)}</span>${t.duration?`<span class="track-dur">${t.duration}</span>`:''}</div>`).join(''):'';
+  const dl=document.getElementById('d-discogs-link');
+  if(c.discogsId){dl.href=`https://www.discogs.com/release/${c.discogsId}`;dl.style.display='inline-flex'}else dl.style.display='none';
 }
 
-function populateEditFields(c) {
-  document.getElementById('e-artist').value  = c.artist  || '';
-  document.getElementById('e-title').value   = c.title   || '';
-  document.getElementById('e-year').value    = c.year    || '';
-  document.getElementById('e-genre').value   = c.genre   || '';
-  document.getElementById('e-label').value   = c.label   || '';
-  document.getElementById('e-country').value = c.country || '';
-  document.getElementById('e-shelf').value   = c.shelf   || '';
-  document.getElementById('e-catno').value   = c.catNo   || '';
-  document.getElementById('e-notes').value   = c.notes   || '';
-  document.getElementById('e-cover-url').value = c.coverUrl || '';
-  document.getElementById('e-copies').value = c.copies || 1;
-  // Tracklist as text
-  const lines = (c.tracks||[]).filter(t=>t.title).map(t => {
-    let line = t.num ? `${t.num}. ${t.title}` : t.title;
-    if (t.duration) line += ` (${t.duration})`;
-    return line;
-  });
-  document.getElementById('e-tracks').value = lines.join('\n');
+function populateEditFields(c){
+  document.getElementById('e-artist').value=c.artist||'';
+  document.getElementById('e-title').value=c.title||'';
+  document.getElementById('e-year').value=c.year||'';
+  document.getElementById('e-genre').value=c.genre||'';
+  document.getElementById('e-label').value=c.label||'';
+  document.getElementById('e-country').value=c.country||'';
+  document.getElementById('e-shelf').value=c.shelf||'';
+  document.getElementById('e-catno').value=c.catNo||'';
+  document.getElementById('e-copies').value=c.copies||1;
+  document.getElementById('e-notes').value=c.notes||'';
+  document.getElementById('e-cover').value=c.coverUrl||'';
+  const lines=(c.tracks||[]).filter(t=>t.title).map(t=>{let l=t.num?`${t.num}. ${t.title}`:t.title;if(t.duration)l+=` (${t.duration})`;return l});
+  document.getElementById('e-tracks').value=lines.join('\n');
 }
 
-function parseTracklist(text) {
-  return text.split('\n').map(line => line.trim()).filter(Boolean).map(line => {
-    const m = line.match(/^(\d+)\.?\s+(.+?)(?:\s+\(([\d:]+)\))?$/);
-    if (m) return { num: m[1], title: m[2].trim(), duration: m[3] || '' };
-    // No number prefix
-    const m2 = line.match(/^(.+?)(?:\s+\(([\d:]+)\))?$/);
-    return { num: '', title: m2 ? m2[1].trim() : line, duration: m2?.[2] || '' };
+function parseTracklist(text){
+  return text.split('\n').map(l=>l.trim()).filter(Boolean).map(line=>{
+    const m=line.match(/^(\d+)\.?\s+(.+?)(?:\s+\(([\d:]+)\))?$/);
+    if(m)return{num:m[1],title:m[2].trim(),duration:m[3]||''};
+    const m2=line.match(/^(.+?)(?:\s+\(([\d:]+)\))?$/);
+    return{num:'',title:m2?m2[1].trim():line,duration:m2?.[2]||''};
   });
 }
 
-async function openDetail(id) {
-  const c = collection.find(x=>x.id===id);
-  if (!c) return;
-  activeDetailId = id;
-  editMode = false;
-  setEditMode(false);
+async function openDetail(id){
+  const c=collection.find(x=>x.id===id);if(!c)return;
+  activeId=id;editMode=false;setEditMode(false);
   renderDetailView(c);
   document.getElementById('detail-overlay').style.display='flex';
 }
 
-function toggleEditMode() {
-  editMode = !editMode;
-  if (editMode) {
-    const c = collection.find(x=>x.id===activeDetailId);
-    editSnapshot = JSON.parse(JSON.stringify(c));
-    populateEditFields(c);
-  }
+function toggleEdit(){
+  editMode=!editMode;
+  if(editMode){const c=collection.find(x=>x.id===activeId);editSnap=JSON.parse(JSON.stringify(c));populateEditFields(c)}
   setEditMode(editMode);
 }
 
-function setEditMode(on) {
-  const body = document.getElementById('d-body');
-  body.className = 'detail-body ' + (on ? 'edit-mode-on' : 'edit-mode-off');
-  document.getElementById('d-edit-btn').className = 'edit-btn' + (on ? ' active' : '');
-  document.getElementById('d-edit-btn').textContent = on ? '✎ Editing' : '✎ Edit';
-  // Show/hide edit-only buttons
-  document.querySelectorAll('.edit-only').forEach(el => el.style.display = on ? '' : 'none');
-  document.querySelectorAll('.view-only').forEach(el => el.style.display = on ? 'none' : '');
+function setEditMode(on){
+  const body=document.getElementById('d-body');
+  body.className='detail-body '+(on?'edit-mode-on':'edit-mode-off');
+  document.getElementById('d-edit-btn').className='d-btn'+(on?' primary':'');
+  document.getElementById('d-edit-btn').textContent=on?'✎ Editing':'✎ Edit';
+  document.querySelectorAll('.edit-only').forEach(el=>el.style.display=on?'':'none');
+  document.querySelectorAll('.view-only').forEach(el=>el.style.display=on?'none':'');
 }
 
-function cancelEdit() {
-  if (editSnapshot) {
-    const idx = collection.findIndex(x=>x.id===activeDetailId);
-    if (idx>=0) collection[idx] = editSnapshot;
-    renderDetailView(collection[idx]);
-  }
-  editMode = false;
-  setEditMode(false);
+function cancelEdit(){
+  if(editSnap){const idx=collection.findIndex(x=>x.id===activeId);if(idx>=0)collection[idx]=editSnap;renderDetailView(collection[idx])}
+  editMode=false;setEditMode(false);
 }
 
-function saveEdit() {
-  const c = collection.find(x=>x.id===activeDetailId);
-  if (!c) return;
-  c.artist  = document.getElementById('e-artist').value.trim()  || c.artist;
-  c.title   = document.getElementById('e-title').value.trim()   || c.title;
-  c.year    = document.getElementById('e-year').value.trim();
-  c.genre   = document.getElementById('e-genre').value.trim();
-  c.label   = document.getElementById('e-label').value.trim();
-  c.country = document.getElementById('e-country').value.trim();
-  c.shelf   = document.getElementById('e-shelf').value.trim();
-  c.catNo   = document.getElementById('e-catno').value.trim();
-  c.notes   = document.getElementById('e-notes').value.trim();
-  c.copies  = Math.max(1, parseInt(document.getElementById('e-copies').value) || 1);
-  const coverUrlInput = document.getElementById('e-cover-url').value.trim();
-  if (coverUrlInput) c.coverUrl = coverUrlInput;
-  const tracksText = document.getElementById('e-tracks').value;
-  if (tracksText.trim()) c.tracks = parseTracklist(tracksText);
-  // Save locally immediately
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(collection));
-  updateStats();
-  renderCollection();
-  buildShelfPills();
-  renderDetailView(c);
-  editMode = false;
-  setEditMode(false);
-  toast('Saving…');
-  // Force immediate cloud push (not debounced) so covers sync right away
-  pushToCloud().then(() => toast('Saved & synced ✓'));
+function saveEdit(){
+  const c=collection.find(x=>x.id===activeId);if(!c)return;
+  c.artist=document.getElementById('e-artist').value.trim()||c.artist;
+  c.title=document.getElementById('e-title').value.trim()||c.title;
+  c.year=document.getElementById('e-year').value.trim();
+  c.genre=document.getElementById('e-genre').value.trim();
+  c.label=document.getElementById('e-label').value.trim();
+  c.country=document.getElementById('e-country').value.trim();
+  c.shelf=document.getElementById('e-shelf').value.trim();
+  c.catNo=document.getElementById('e-catno').value.trim();
+  c.copies=Math.max(1,parseInt(document.getElementById('e-copies').value)||1);
+  c.notes=document.getElementById('e-notes').value.trim();
+  const cu=document.getElementById('e-cover').value.trim();if(cu)c.coverUrl=cu;
+  const tt=document.getElementById('e-tracks').value;if(tt.trim())c.tracks=parseTracklist(tt);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(collection));updateStats();
+  renderCollection();buildShelfPills();renderDetailView(c);
+  editMode=false;setEditMode(false);
+  toast('Saving…');pushToCloud().then(()=>toast('Saved & synced ✓'));
 }
 
-// ── COVER UPLOAD ──
-async function handleCoverUpload(event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
-  if (!file.type.startsWith('image/')) { toast('Please select an image file'); return; }
+function chgCopies(d){const el=document.getElementById('e-copies');el.value=Math.max(1,Math.min(99,(parseInt(el.value)||1)+d))}
 
-  const c = collection.find(x => x.id === activeDetailId);
-  if (!c) return;
+function closeDetail(){document.getElementById('detail-overlay').style.display='none';activeId=null}
+function closeDetailBg(e){if(e.target===document.getElementById('detail-overlay'))closeDetail()}
 
-  // Show local preview immediately
-  const blobUrl = URL.createObjectURL(file);
-  const wrap = document.getElementById('d-cover-wrap');
-  const uploadOverlay = `<div class="cover-upload-zone" style="position:absolute;inset:0;border-radius:var(--radius-lg) var(--radius-lg) 0 0"><input type="file" accept="image/*" onchange="handleCoverUpload(event)" /><div class="cover-upload-overlay"><span style="font-size:1.8rem">📷</span><span>Change cover</span></div></div>`;
-  wrap.innerHTML = `<img src="${blobUrl}" style="width:100%;height:100%;object-fit:cover" /><div class="detail-cover-gradient"></div>${uploadOverlay}`;
-
-  if (!syncEnabled || !sb) {
-    toast('No Supabase connection — saving locally only');
-    saveBase64Cover(file, c);
-    return;
-  }
-
-  toast('Uploading cover…');
-  setSyncStatus('syncing', 'uploading…');
-
-  try {
-    // Compress image to JPEG blob to keep size manageable
-    const compressed = await compressImage(file, 900);
-
-    const cfg = getConfig();
-    const passHash = cfg?.passHash || 'default';
-    // Simple flat path: passHash_cdId.jpg — no subfolders to avoid policy issues
-    const path = `${passHash}_${c.id}.jpg`;
-
-    console.log('[Cover Upload] Uploading to bucket "covers", path:', path);
-
-    const { data: upData, error: upErr } = await sb.storage
-      .from('covers')
-      .upload(path, compressed, {
-        upsert: true,
-        contentType: 'image/jpeg',
-        cacheControl: '3600'
-      });
-
-    if (upErr) {
-      console.error('[Cover Upload] Storage error:', upErr);
-      throw new Error(upErr.message);
-    }
-
-    console.log('[Cover Upload] Upload success:', upData);
-
-    const { data: urlData } = sb.storage.from('covers').getPublicUrl(path);
-    const publicUrl = urlData?.publicUrl;
-    console.log('[Cover Upload] Public URL:', publicUrl);
-
-    if (!publicUrl) throw new Error('Could not get public URL from Supabase');
-
-    // Save URL and sync
-    c.coverUrl = publicUrl;
-    const urlInput = document.getElementById('e-cover-url');
-    if (urlInput) urlInput.value = publicUrl;
-
-    wrap.innerHTML = `<img src="${publicUrl}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.opacity=0.3" /><div class="detail-cover-gradient"></div>${uploadOverlay}`;
-
-    updateCardCover(c.id, publicUrl);
-    persistSave();
-    URL.revokeObjectURL(blobUrl);
-    setSyncStatus('ok', 'synced');
-    toast('Cover saved & synced ✓');
-
-  } catch(err) {
-    console.error('[Cover Upload] Failed:', err);
-    setSyncStatus('error', 'upload failed');
-    // Show the actual error message so user knows what to fix
-    toast('Upload failed: ' + (err.message || 'check console for details'));
-    // Still save locally as fallback
-    saveBase64Cover(file, c);
-  }
-}
-
-// Compress image to JPEG using canvas, max dimension px
-async function compressImage(file, maxDim) {
-  return new Promise(resolve => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      let w = img.width, h = img.height;
-      if (w > maxDim || h > maxDim) {
-        if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
-        else { w = Math.round(w * maxDim / h); h = maxDim; }
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      URL.revokeObjectURL(url);
-      canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.88);
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
-    img.src = url;
-  });
-}
-function saveBase64Cover(file, c) {
-  const reader = new FileReader();
-  reader.onload = e => {
-    const dataUrl = e.target.result;
-    const urlInput = document.getElementById('e-cover-url');
-    if (urlInput) urlInput.value = dataUrl;
-    c.coverUrl = dataUrl;
-    persistSave();
-    updateCardCover(c.id, dataUrl);
-  };
-  reader.readAsDataURL(file);
-}
-
-function changeCopies(delta) {
-  const input = document.getElementById('e-copies');
-  const current = parseInt(input.value) || 1;
-  input.value = Math.max(1, Math.min(99, current + delta));
-}
-
-function applyCoverUrl() {
-  const url = document.getElementById('e-cover-url').value.trim();
-  if (!url) return;
-  const wrap = document.getElementById('d-cover-wrap');
-  wrap.innerHTML = `<img src="${escAttr(url)}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='<div class=detail-cover-ph>💿</div>'" /><div class="detail-cover-gradient"></div>`;
+function applyCoverUrl(){
+  const url=document.getElementById('e-cover').value.trim();if(!url)return;
+  const hero=document.getElementById('d-hero');
+  hero.innerHTML=`<img src="${escAttr(url)}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='<div class=detail-cover-hero-ph>💿</div>'" /><div class="detail-hero-grad"></div>`;
   toast('Preview updated — click Save to keep');
 }
 
-function saveNotes() {
-  // legacy — notes now saved via saveEdit
+// ── COVER UPLOAD ──
+async function compressImage(file,maxDim){
+  return new Promise(resolve=>{
+    const img=new Image();const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      let w=img.width,h=img.height;
+      if(w>maxDim||h>maxDim){if(w>h){h=Math.round(h*maxDim/w);w=maxDim}else{w=Math.round(w*maxDim/h);h=maxDim}}
+      const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
+      canvas.toBlob(blob=>resolve(blob),'image/jpeg',0.88);
+    };img.onerror=()=>{URL.revokeObjectURL(url);resolve(file)};img.src=url;
+  });
 }
 
-function closeDetail(e) { if (e.target===document.getElementById('detail-overlay')) closeDetailBtn(); }
-function closeDetailBtn() { document.getElementById('detail-overlay').style.display='none'; activeDetailId=null; }
+async function handleCoverUpload(event){
+  const file=event.target.files?.[0];if(!file)return;
+  if(!file.type.startsWith('image/')){toast('Please select an image file');return}
+  const c=collection.find(x=>x.id===activeId);if(!c)return;
+  const blobUrl=URL.createObjectURL(file);
+  const hero=document.getElementById('d-hero');
+  const uploadZone=`<div class="cover-upload-zone"><input type="file" accept="image/*" onchange="handleCoverUpload(event)" /><div class="cover-upload-hover"><span style="font-size:1.5rem">📷</span><span>Change cover</span></div></div>`;
+  hero.innerHTML=`<img src="${blobUrl}" style="width:100%;height:100%;object-fit:cover" /><div class="detail-hero-grad"></div>${uploadZone}`;
+  if(!syncEnabled||!sb){toast('Saved locally (connect Supabase to sync)');saveBase64Cover(file,c);return}
+  toast('Uploading cover…');setSyncStatus('syncing','uploading…');
+  try{
+    const compressed=await compressImage(file,900);
+    const cfg=getConfig();const passHash=cfg?.passHash||'default';
+    const path=`${passHash}_${c.id}.jpg`;
+    const{data:upData,error:upErr}=await sb.storage.from('covers').upload(path,compressed,{upsert:true,contentType:'image/jpeg',cacheControl:'3600'});
+    if(upErr)throw new Error(upErr.message);
+    const{data:urlData}=sb.storage.from('covers').getPublicUrl(path);
+    const publicUrl=urlData?.publicUrl;if(!publicUrl)throw new Error('Could not get public URL');
+    c.coverUrl=publicUrl;
+    const urlInput=document.getElementById('e-cover');if(urlInput)urlInput.value=publicUrl;
+    hero.innerHTML=`<img src="${publicUrl}" style="width:100%;height:100%;object-fit:cover" /><div class="detail-hero-grad"></div>${uploadZone}`;
+    updateCardCover(c.id,publicUrl);persistSave();URL.revokeObjectURL(blobUrl);
+    setSyncStatus('ok','synced');toast('Cover saved & synced ✓');
+  }catch(err){
+    setSyncStatus('error','upload failed');
+    toast('Upload failed: '+(err.message||'check console'));
+    saveBase64Cover(file,c);
+  }
+}
 
-function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function escAttr(s) { return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function saveBase64Cover(file,c){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const url=e.target.result;
+    const urlInput=document.getElementById('e-cover');if(urlInput)urlInput.value=url;
+    c.coverUrl=url;persistSave();updateCardCover(c.id,url);
+  };reader.readAsDataURL(file);
+}
 
+// ── SUPABASE STORAGE CHECK ──
+async function checkStorageAccess(){
+  if(!sb)return;
+  try{
+    const test=new Blob(['x'],{type:'text/plain'});
+    const{error}=await sb.storage.from('covers').upload('_test.txt',test,{upsert:true,contentType:'text/plain'});
+    if(error){console.warn('[Storage]',error.message);showStoragePolicyHelp(error.message)}
+    else{await sb.storage.from('covers').remove(['_test.txt'])}
+  }catch(e){console.warn('[Storage check error]',e)}
+}
+
+function showStoragePolicyHelp(errMsg){
+  document.getElementById('storage-policy-banner')?.remove();
+  const sql=`create policy "Allow public uploads"\non storage.objects for insert to anon\nwith check (bucket_id = 'covers');\n\ncreate policy "Allow public updates"\non storage.objects for update to anon\nusing (bucket_id = 'covers');\n\ncreate policy "Allow public reads"\non storage.objects for select to anon\nusing (bucket_id = 'covers');`;
+  const b=document.createElement('div');b.id='storage-policy-banner';b.className='policy-banner';
+  b.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem"><div><div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:.35rem">⚠ Storage upload blocked</div><div style="font-size:12px;color:var(--muted);line-height:1.5">Run this SQL in Supabase SQL Editor to allow cover uploads:</div></div><button onclick="document.getElementById('storage-policy-banner').remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;flex-shrink:0">✕</button></div><pre id="policy-sql" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.75rem;font-size:10px;font-family:var(--font);color:var(--ink);margin:.75rem 0;white-space:pre-wrap;line-height:1.5">${sql}</pre><button onclick="navigator.clipboard.writeText(document.getElementById('policy-sql').textContent).then(()=>toast('Copied ✓'))" style="background:var(--ink);color:#fff;border:none;border-radius:8px;padding:.4rem 1rem;font-size:12px;font-family:var(--font);cursor:pointer;font-weight:500">Copy SQL</button>`;
+  document.body.appendChild(b);
+}
 
 // ── BARCODE SCANNER ──
-let scannerStream = null;
-let scannerActive = false;
-let scannedData = null;
-let zxingReader = null;
+let scanStream=null,scanActive=false,scannedData=null,zxReader=null;
 
-async function openScanner() {
-  document.getElementById('scanner-modal').style.display = 'flex';
-  document.getElementById('scanner-result-wrap').style.display = 'none';
-  document.getElementById('scan-again-btn').style.display = 'none';
-  document.getElementById('scanner-label').textContent = 'Point your camera at the CD barcode';
-  scannerActive = true;
-  scannedData = null;
-
-  try {
-    scannerStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
-    });
-    const video = document.getElementById('scanner-video');
-    video.srcObject = scannerStream;
-    await video.play();
+async function openScanner(){
+  document.getElementById('scanner-modal').style.display='flex';
+  document.getElementById('scanner-result').style.display='none';
+  document.getElementById('scan-again-btn').style.display='none';
+  document.getElementById('scanner-label').textContent='Point camera at the CD barcode';
+  scanActive=true;scannedData=null;
+  try{
+    scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}});
+    const video=document.getElementById('scanner-video');video.srcObject=scanStream;await video.play();
     startDecoding(video);
-  } catch(e) {
-    document.getElementById('scanner-label').textContent = 'Camera access denied. Try typing the barcode number below.';
-    showManualBarcodeInput();
-  }
+  }catch(e){document.getElementById('scanner-label').textContent='Camera denied. Enter barcode manually:';showManualBarcode()}
 }
 
-function startDecoding(video) {
-  // Try native BarcodeDetector first (Chrome/Safari/Edge)
-  if ('BarcodeDetector' in window) {
-    const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'] });
-    const detect = async () => {
-      if (!scannerActive) return;
-      try {
-        const barcodes = await detector.detect(video);
-        if (barcodes.length > 0) {
-          const code = barcodes[0].rawValue;
-          onBarcodeDetected(code);
-          return;
-        }
-      } catch(e) {}
-      requestAnimationFrame(detect);
-    };
+function startDecoding(video){
+  if('BarcodeDetector' in window){
+    const det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128']});
+    const detect=async()=>{if(!scanActive)return;try{const b=await det.detect(video);if(b.length){onBarcode(b[0].rawValue);return}}catch(e){}requestAnimationFrame(detect)};
     requestAnimationFrame(detect);
-  } else if (window.ZXingBrowser) {
-    // ZXing fallback for Firefox
-    try {
-      const hints = new Map();
-      zxingReader = new ZXingBrowser.BrowserMultiFormatReader(hints);
-      zxingReader.decodeFromVideoElement(video, (result, err) => {
-        if (result && scannerActive) {
-          onBarcodeDetected(result.getText());
-        }
-      });
-    } catch(e) {
-      document.getElementById('scanner-label').textContent = 'Scanner not supported on this browser. Enter barcode manually.';
-      showManualBarcodeInput();
-    }
-  } else {
-    document.getElementById('scanner-label').textContent = 'Scanner not supported. Enter barcode manually.';
-    showManualBarcodeInput();
-  }
+  }else if(window.ZXingBrowser){
+    try{zxReader=new ZXingBrowser.BrowserMultiFormatReader();zxReader.decodeFromVideoElement(video,(r,err)=>{if(r&&scanActive)onBarcode(r.getText())})}
+    catch(e){document.getElementById('scanner-label').textContent='Scanner not supported. Enter barcode manually:';showManualBarcode()}
+  }else{document.getElementById('scanner-label').textContent='Enter barcode manually:';showManualBarcode()}
 }
 
-function showManualBarcodeInput() {
-  const label = document.getElementById('scanner-label');
-  label.innerHTML = `<div style="margin-top:.5rem">
-    <input id="manual-barcode" type="text" inputmode="numeric" placeholder="Enter barcode number…"
-      style="background:var(--surface2);border:0.5px solid var(--border2);border-radius:8px;padding:.5rem .85rem;color:var(--cream);font-family:var(--font-mono);font-size:14px;outline:none;width:220px;text-align:center" />
-    <button onclick="lookupManualBarcode()" style="margin-left:.5rem;background:var(--gold);color:#1a1510;border:none;border-radius:8px;padding:.5rem .85rem;font-size:13px;cursor:pointer">Look up</button>
-  </div>`;
+function showManualBarcode(){
+  document.getElementById('scanner-label').innerHTML=`<div style="margin-top:.5rem;display:flex;gap:.5rem;justify-content:center"><input id="manual-barcode" type="text" inputmode="numeric" placeholder="Barcode number…" style="background:#222;border:1px solid #444;border-radius:8px;padding:.5rem .85rem;color:#fff;font-family:var(--font);font-size:14px;outline:none;width:200px;text-align:center" /><button onclick="document.getElementById('manual-barcode').value&&onBarcode(document.getElementById('manual-barcode').value)" style="background:var(--gold);color:#fff;border:none;border-radius:8px;padding:.5rem 1rem;font-size:13px;cursor:pointer;font-weight:600">Look up</button></div>`;
 }
 
-function lookupManualBarcode() {
-  const val = document.getElementById('manual-barcode')?.value?.trim();
-  if (val) onBarcodeDetected(val);
+async function onBarcode(barcode){
+  if(!scanActive)return;scanActive=false;
+  if(zxReader){try{zxReader.reset()}catch(e){}}
+  document.getElementById('scanner-label').textContent=`Barcode ${barcode} — looking up…`;
+  document.getElementById('scan-barcode').textContent=`Barcode: ${barcode}`;
+  try{
+    const res=await fetch(`https://musicbrainz.org/ws/2/release/?query=barcode:${barcode}&fmt=json&limit=5`,{headers:{'User-Agent':'CDCollectionApp/1.0'}});
+    const data=await res.json();const releases=data.releases||[];
+    if(!releases.length){document.getElementById('scanner-label').textContent=`No results for ${barcode}. Try again.`;document.getElementById('scan-again-btn').style.display='inline-block';return}
+    const release=releases.sort((a,b)=>((b.date?4:0)+(b['label-info']?.length?2:0)+(b.country?1:0))-((a.date?4:0)+(a['label-info']?.length?2:0)+(a.country?1:0)))[0];
+    const artist=release['artist-credit']?.[0]?.name||release['artist-credit']?.[0]?.artist?.name||'Unknown';
+    const title=release.title||'';const year=release.date?release.date.slice(0,4):'';
+    const label=release['label-info']?.[0]?.label?.name||'';const country=release.country||'';const mbid=release.id;
+    let tracks=[];
+    try{const tr=await fetch(`https://musicbrainz.org/ws/2/release/${mbid}?inc=recordings&fmt=json`,{headers:{'User-Agent':'CDCollectionApp/1.0'}});const td=await tr.json();const media=td.media?.[0];if(media?.tracks)tracks=media.tracks.map(t=>({num:t.number,title:t.title,duration:t.length?formatMs(t.length):''}))}catch(e){}
+    const coverUrl=await fetchCover(artist,title,null)||'';
+    scannedData={mbid,title,artist,year,label,country,tracks,coverUrl,barcode};
+    document.getElementById('scan-title').textContent=title;
+    document.getElementById('scan-artist').textContent=artist;
+    document.getElementById('scan-meta').textContent=[year,label,country].filter(Boolean).join(' · ');
+    const ci=document.getElementById('scan-cover');if(coverUrl)ci.src=coverUrl;else ci.style.display='none';
+    document.getElementById('scanner-label').textContent='Found it!';
+    document.getElementById('scanner-result').style.display='block';
+    document.getElementById('scan-again-btn').style.display='inline-block';
+  }catch(e){document.getElementById('scanner-label').textContent='Lookup failed. Check connection.';document.getElementById('scan-again-btn').style.display='inline-block'}
 }
 
-async function onBarcodeDetected(barcode) {
-  if (!scannerActive) return;
-  scannerActive = false;
-
-  // Stop camera
-  if (zxingReader) { try { zxingReader.reset(); } catch(e) {} }
-
-  document.getElementById('scanner-label').textContent = `Barcode: ${barcode} — looking up…`;
-  document.getElementById('scan-barcode').textContent = `Barcode: ${barcode}`;
-
-  try {
-    // Look up barcode on MusicBrainz — best free music barcode database
-    const mbUrl = `https://musicbrainz.org/ws/2/release/?query=barcode:${barcode}&fmt=json&limit=5`;
-    const res = await fetch(mbUrl, { headers: { 'User-Agent': 'CDCollectionApp/1.0' } });
-    const data = await res.json();
-    const releases = data.releases || [];
-
-    if (!releases.length) {
-      document.getElementById('scanner-label').textContent = `No results for barcode ${barcode}. Try scanning again or add manually.`;
-      document.getElementById('scan-again-btn').style.display = 'inline-block';
-      return;
-    }
-
-    // Pick best release — prefer ones with most info
-    const release = releases.sort((a, b) => {
-      const scoreA = (a.date?4:0) + (a['label-info']?.length?2:0) + (a.country?1:0);
-      const scoreB = (b.date?4:0) + (b['label-info']?.length?2:0) + (b.country?1:0);
-      return scoreB - scoreA;
-    })[0];
-
-    const artist = release['artist-credit']?.[0]?.name ||
-                   release['artist-credit']?.[0]?.artist?.name || 'Unknown';
-    const title  = release.title || '';
-    const year   = release.date ? release.date.slice(0,4) : '';
-    const label  = release['label-info']?.[0]?.label?.name || '';
-    const country = release.country || '';
-    const mbid   = release.id;
-
-    // Fetch tracklist
-    let tracks = [];
-    try {
-      const tRes = await fetch(`https://musicbrainz.org/ws/2/release/${mbid}?inc=recordings&fmt=json`, {
-        headers: { 'User-Agent': 'CDCollectionApp/1.0' }
-      });
-      const tData = await tRes.json();
-      const media = tData.media?.[0];
-      if (media?.tracks) {
-        tracks = media.tracks.map(t => ({
-          num: t.number,
-          title: t.title,
-          duration: t.length ? formatMs(t.length) : ''
-        }));
-      }
-    } catch(e) {}
-
-    // Get cover from iTunes
-    const coverUrl = await fetchCover(artist, title, null) || '';
-
-    // Store for adding
-    scannedData = { mbid, title, artist, year, label, country, tracks, coverUrl, barcode };
-
-    // Update UI
-    document.getElementById('scan-title').textContent = title;
-    document.getElementById('scan-artist').textContent = artist;
-    document.getElementById('scan-meta').textContent = [year, label, country].filter(Boolean).join(' · ');
-    const coverImg = document.getElementById('scan-cover');
-    if (coverUrl) { coverImg.src = coverUrl; } else { coverImg.style.display='none'; }
-    document.getElementById('scanner-label').textContent = 'Found it! Add to your collection?';
-    document.getElementById('scanner-result-wrap').style.display = 'block';
-    document.getElementById('scan-again-btn').style.display = 'inline-block';
-
-  } catch(e) {
-    console.error('Barcode lookup error:', e);
-    document.getElementById('scanner-label').textContent = 'Lookup failed. Check connection and try again.';
-    document.getElementById('scan-again-btn').style.display = 'inline-block';
-  }
+function addScannedCD(){
+  if(!scannedData)return;
+  collection.unshift({id:Date.now(),mbid:scannedData.mbid||null,discogsId:'',title:scannedData.title,artist:scannedData.artist,year:scannedData.year,label:scannedData.label,genre:'',country:scannedData.country,catNo:'',shelf:'',copies:1,coverUrl:scannedData.coverUrl||'',tracks:scannedData.tracks||[],notes:`Barcode: ${scannedData.barcode}`,addedAt:Date.now()});
+  persistSave();renderCollection();buildShelfPills();toast(`Added: ${scannedData.title}`);closeScanner();
 }
 
-function addScannedCD() {
-  if (!scannedData) return;
-  const entry = {
-    id: Date.now(),
-    mbid: scannedData.mbid || null,
-    discogsId: '',
-    title: scannedData.title,
-    artist: scannedData.artist,
-    year: scannedData.year,
-    label: scannedData.label,
-    genre: '',
-    country: scannedData.country,
-    catNo: '',
-    shelf: '',
-    copies: 1,
-    coverUrl: scannedData.coverUrl || '',
-    tracks: scannedData.tracks || [],
-    notes: `Barcode: ${scannedData.barcode}`,
-    addedAt: Date.now()
-  };
-  collection.unshift(entry);
-  persistSave();
-  renderCollection();
-  buildShelfPills();
-  toast(`Added: ${entry.title}`);
-  closeScanner();
+function restartScanner(){scannedData=null;scanActive=true;document.getElementById('scanner-result').style.display='none';document.getElementById('scan-again-btn').style.display='none';document.getElementById('scanner-label').textContent='Point camera at the CD barcode';const v=document.getElementById('scanner-video');if(v.srcObject)startDecoding(v)}
+
+function closeScanner(){
+  scanActive=false;
+  if(zxReader){try{zxReader.reset()}catch(e){}zxReader=null}
+  if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null}
+  const v=document.getElementById('scanner-video');v.srcObject=null;
+  document.getElementById('scanner-modal').style.display='none';
 }
 
-function restartScanner() {
-  scannedData = null;
-  scannerActive = true;
-  document.getElementById('scanner-result-wrap').style.display = 'none';
-  document.getElementById('scan-again-btn').style.display = 'none';
-  document.getElementById('scanner-label').textContent = 'Point your camera at the CD barcode';
-  // Restart decoding
-  const video = document.getElementById('scanner-video');
-  if (video.srcObject) startDecoding(video);
-}
-
-function closeScanner() {
-  scannerActive = false;
-  if (zxingReader) { try { zxingReader.reset(); } catch(e) {} zxingReader = null; }
-  if (scannerStream) {
-    scannerStream.getTracks().forEach(t => t.stop());
-    scannerStream = null;
-  }
-  const video = document.getElementById('scanner-video');
-  video.srcObject = null;
-  document.getElementById('scanner-modal').style.display = 'none';
-}
-
+// ── UTILS ──
+function formatMs(ms){const s=Math.round(ms/1000);return`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function escAttr(s){return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
 
 // ── INIT ──
 checkSetupLink();
-initCollection();
+initCollection().then(()=>{
+  // Show welcome on first ever visit
+  const hasVisited=localStorage.getItem('discotheque_welcomed');
+  if(!hasVisited){
+    localStorage.setItem('discotheque_welcomed','1');
+    document.getElementById('welcome-modal').style.display='flex';
+  }
+});
 </script>
 </body>
 </html>
